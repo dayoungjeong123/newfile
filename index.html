@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>Python 코드 한 줄씩 실행 웹앱</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 순서도 생성을 위한 Mermaid.js (안정적인 9.x UMD 버전 사용) -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js"></script>
   <style>
     * { box-sizing: border-box; }
 
@@ -241,7 +243,6 @@
       word-break: break-word;
     }
 
-    .line-normal { }
     .line-current { background: var(--accent-soft); }
     .line-done { color: #999; }
 
@@ -256,6 +257,119 @@
 
     .badge.go { background: #fff59d; }
     .badge.stop { background: #cfd8dc; }
+
+    /* 교사 말풍선 스타일 */
+    .teacher-bubble {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--card-bg);
+      border: 3px solid var(--accent);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 500px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      z-index: 1000;
+      animation: bubblePop 0.3s ease-out;
+    }
+
+    @keyframes bubblePop {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .teacher-bubble::before {
+      content: '👩‍🏫';
+      font-size: 48px;
+      display: block;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .teacher-bubble h4 {
+      margin: 0 0 12px 0;
+      color: var(--accent);
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .teacher-bubble .error-reason {
+      background: var(--accent-soft);
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .teacher-bubble .error-fix {
+      background: #e8f5e9;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      font-size: 14px;
+      line-height: 1.6;
+      border-left: 4px solid #4caf50;
+      white-space: pre-wrap;
+    }
+
+    .teacher-bubble .error-fix code {
+      display: block;
+      background: #fff;
+      padding: 8px;
+      border-radius: 4px;
+      margin: 4px 0;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    .teacher-bubble .error-code {
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      background: #f5f5f5;
+      padding: 8px;
+      border-radius: 4px;
+      margin: 8px 0;
+      font-size: 13px;
+      color: #d32f2f;
+    }
+
+    .teacher-bubble button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      font-size: 15px;
+    }
+
+    .bubble-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+
+    /* 순서도 영역 */
+    #flowchart {
+      max-height: 360px;
+      overflow: auto;
+      border-radius: 8px;
+      background: #fafafa;
+      padding: 6px;
+    }
+
+    #flowchart svg {
+      max-width: 100%;
+    }
 
     @media (max-width: 600px) {
       header h1 { font-size: 18px; }
@@ -284,8 +398,8 @@
     <section class="card">
       <h2 style="margin-top:0; font-size:18px;">1. 코드 입력</h2>
       <p style="font-size:13px; color:var(--text-sub);">
-        파이썬 스타일의 <b>대입문 + 사칙연산</b>과 <b>for i in range(n):</b> 를 지원합니다.<br>
-        예) <code>x = 1</code>, <code>x = x + 2</code>, <code>y = x * 3</code> · 주석은 <code>#</code> 로 시작
+        이제 이 칸에는 <b>진짜 파이썬 코드</b>를 그대로 작성하면 됩니다. (Pyodide로 실행)<br>
+        <b>if / for / while / 함수 정의 / 리스트, 딕셔너리</b> 같은 일반적인 파이썬 문법을 사용할 수 있고, 주석은 <code>#</code> 로 시작합니다.
       </p>
       <textarea id="code" rows="8">
 # 예시 코드
@@ -312,21 +426,79 @@ for i in range(5):
         <h3>변수 상태</h3>
         <pre id="vars"></pre>
       </div>
+      <div class="panel">
+        <h3>순서도 (자동 생성)</h3>
+        <div id="flowchart">(실행 준비를 누르면 코드 흐름 순서도가 여기에 표시됩니다)</div>
+      </div>
     </section>
   </main>
 
+  <!-- Pyodide: 브라우저 안에서 진짜 파이썬 실행 엔진 -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+
   <script>
-    let execLines = [];   // 실제로 실행할 줄 목록 (for를 펼친 결과 포함)
+    let traceSteps = [];  // Pyodide에서 수집한 실행 기록 [{ lineno, locals, globals }, ...]
     let pc = 0;           // program counter
     let vars = {};        // 변수 상태
+    let pyodideReadyPromise = null;
+    let mermaidReady = false;
+    let lastFlowSteps = []; // 순서도 노드와 원본 코드 매핑 정보
 
-    const codeInput  = document.getElementById('code');
-    const codeView   = document.getElementById('code-view');
-    const varsView   = document.getElementById('vars');
-    const statusView = document.getElementById('status');
-    const startBtn   = document.getElementById('start');
-    const nextBtn    = document.getElementById('next');
-    const themeSelect = document.getElementById('theme-select');
+    // 한 줄의 파이썬 코드를 순서도용 의사코드로 변환
+    function toPseudo(line, index) {
+      const trimmed = line.trim();
+
+      // if / elif / else
+      let m = trimmed.match(/^if\s+(.+):\s*$/);
+      if (m) return `if ${m[1]}`;
+      m = trimmed.match(/^elif\s+(.+):\s*$/);
+      if (m) return `else if ${m[1]}`;
+      if (/^else\s*:\s*$/.test(trimmed)) return 'else';
+
+      // for i in range(...)
+      m = trimmed.match(/^for\s+([a-zA-Z_]\w*)\s+in\s+range\((.+)\):\s*$/);
+      if (m) {
+        const v = m[1];
+        const expr = m[2].trim();
+        return `for ${v} in 0..${expr}-1`;
+      }
+
+      // while 조건
+      m = trimmed.match(/^while\s+(.+):\s*$/);
+      if (m) return `while ${m[1]}`;
+
+      // 대입문
+      m = trimmed.match(/^([a-zA-Z_]\w*)\s*=\s*(.+)$/);
+      if (m) return `${m[1]} ← ${m[2]}`;
+
+      // return
+      m = trimmed.match(/^return\s+(.+)$/);
+      if (m) return `return ${m[1]}`;
+
+      // 기본: 너무 길면 자르기
+      let base = trimmed;
+      if (base.length > 40) base = base.slice(0, 37) + '...';
+      return base || `line ${index + 1}`;
+    }
+
+    const codeInput    = document.getElementById('code');
+    const codeView     = document.getElementById('code-view');
+    const varsView     = document.getElementById('vars');
+    const statusView   = document.getElementById('status');
+    const startBtn     = document.getElementById('start');
+    const nextBtn      = document.getElementById('next');
+    const themeSelect  = document.getElementById('theme-select');
+    const flowchartDiv = document.getElementById('flowchart');
+
+    // Pyodide 로딩
+    function ensurePyodide() {
+      if (!pyodideReadyPromise) {
+        pyodideReadyPromise = loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
+        });
+      }
+      return pyodideReadyPromise;
+    }
 
     function setStatus(msg) {
       statusView.textContent = msg;
@@ -382,207 +554,444 @@ for i in range(5):
       textarea.selectionStart = textarea.selectionEnd = newPos;
     });
 
-    // 실행 준비 버튼
-    startBtn.onclick = () => {
-      const rawLines = codeInput.value.split('\n');
+    // 간단한 순서도용 Mermaid 정의 생성 + 노드-코드 매핑 저장
+    function buildMermaidFlowchart(rawCode) {
+      const lines = rawCode.split('\n');
+      const steps = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i].replace(/\r/g, '');
+        const trimmed = raw.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+
+        // 의사코드 형태의 라벨 생성
+        let label = toPseudo(trimmed, i);
+        // Mermaid 파서와 충돌할 수 있는 큰따옴표만 치환
+        label = label.replace(/"/g, "'");
+        steps.push({ id: `n${steps.length}`, label, code: trimmed, line: i + 1 });
+      }
+
+      if (steps.length === 0) {
+        lastFlowSteps = [];
+        return '';
+      }
+
+      // Mermaid 9 호환용: 단순 graph 문법 사용
+      let out = 'graph TD\n';
+      out += '  start(["Start"])\n';
+
+      for (const step of steps) {
+        // 라벨은 항상 큰따옴표로 감싸서 파싱 에러를 방지
+        const safeLabel = step.label.replace(/"/g, "'");
+        out += `  ${step.id}["${safeLabel}"]\n`;
+      }
+      // "end"는 Mermaid에서 예약어일 수 있으므로 다른 이름 사용
+      out += '  finish(["End"])\n';
+
+      out += `  start --> ${steps[0].id}\n`;
+      for (let i = 0; i < steps.length - 1; i++) {
+        out += `  ${steps[i].id} --> ${steps[i + 1].id}\n`;
+      }
+      out += `  ${steps[steps.length - 1].id} --> finish\n`;
+
+      // 나중에 코드와 함께 보여주기 위해 전역에 저장
+      lastFlowSteps = steps;
+      return out;
+    }
+
+    function renderFlowchart(rawCode) {
+      if (!flowchartDiv) return;
+      const def = buildMermaidFlowchart(rawCode);
+      if (!def) {
+        flowchartDiv.textContent = '코드가 없어 순서도를 만들 수 없습니다.';
+        return;
+      }
+      if (typeof mermaid === 'undefined') {
+        // 스크립트가 안 불러졌으면 텍스트 형태로라도 보여주기
+        flowchartDiv.textContent = def;
+        return;
+      }
+      try {
+        if (!mermaidReady) {
+          mermaid.initialize({ startOnLoad: false, theme: 'default' });
+          mermaidReady = true;
+        }
+        mermaid.render('flowchartGraph', def, (svgCode) => {
+          // 순서도 SVG 삽입
+          flowchartDiv.innerHTML = svgCode;
+
+          // 아래에 각 단계별 원본 코드도 함께 표시
+          if (lastFlowSteps && lastFlowSteps.length > 0) {
+            const legend = document.createElement('pre');
+            legend.style.marginTop = '8px';
+            legend.style.fontSize = '12px';
+            legend.textContent = lastFlowSteps
+              .map(s => `${s.label}  →  ${s.code}`)
+              .join('\n');
+            flowchartDiv.appendChild(legend);
+          }
+        });
+      } catch (e) {
+        console.error('Mermaid 렌더링 오류:', e);
+        flowchartDiv.textContent = '순서도 생성 중 오류가 발생했습니다: ' + e.message + '\n\n정의:\n' + def;
+      }
+    }
+
+    // 파이썬 오류 메시지를 한국어로 친절하게 변환
+    function parsePythonError(error, code) {
+      const errorMsg = error.message || String(error);
+      const lines = code.split('\n');
+      
+      // SyntaxError: invalid syntax
+      if (errorMsg.includes('SyntaxError') || errorMsg.includes('invalid syntax')) {
+        const lineMatch = errorMsg.match(/line (\d+)/);
+        const lineNum = lineMatch ? parseInt(lineMatch[1]) : null;
+        const problemLine = lineNum ? lines[lineNum - 1] : null;
+        
+        let reason = '코드에 문법 오류가 있어요!';
+        let fix = '';
+        
+        if (problemLine) {
+          // 들여쓰기 오류
+          if (problemLine.trim().endsWith(':') && lineNum < lines.length) {
+            const nextLine = lines[lineNum];
+            if (nextLine && nextLine.trim() && !nextLine.match(/^\s{4,}/) && !nextLine.match(/^\s*\w/)) {
+              reason = `${lineNum}번째 줄에 콜론(:)이 있는데, 그 다음 줄이 제대로 들여쓰기되지 않았어요!`;
+              fix = `📝 <strong>해결 방법:</strong><br>
+1️⃣ 콜론(:)이 있는 줄 다음에는 반드시 4칸 들여쓰기를 해야 해요<br>
+2️⃣ 스페이스바를 4번 누르거나, Tab 키를 한 번 누르면 돼요<br>
+<br>
+<strong>❌ 잘못된 예:</strong><br>
+<code>for i in range(5):<br>
+print(i)  ← 들여쓰기가 없어요!</code><br>
+<br>
+<strong>✅ 올바른 예:</strong><br>
+<code>for i in range(5):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;print(i)  ← 4칸 들여쓰기!</code><br>
+<br>
+💡 <strong>팁:</strong> 같은 블록 안의 모든 줄은 같은 들여쓰기를 사용해야 해요!`;
+            }
+          }
+          // 괄호/따옴표 짝이 안 맞는 경우
+          if (problemLine.includes('(') && !problemLine.match(/\([^)]*\)/)) {
+            reason = `${lineNum}번째 줄에서 열린 괄호 ( 가 닫히지 않았어요!`;
+            fix = `📝 <strong>해결 방법:</strong><br>
+1️⃣ 열린 괄호 ( 가 있으면 반드시 닫는 괄호 ) 가 있어야 해요<br>
+2️⃣ 괄호 안의 내용을 확인하고, 빠진 닫는 괄호를 찾아서 추가하세요<br>
+<br>
+<strong>❌ 잘못된 예:</strong><br>
+<code>print(range(5  ← 닫는 괄호가 없어요!</code><br>
+<br>
+<strong>✅ 올바른 예:</strong><br>
+<code>print(range(5))  ← 괄호가 열리고 닫혔어요</code><br>
+<br>
+💡 <strong>팁:</strong> 괄호를 쓸 때마다 열고 닫는 것을 함께 쓰는 습관을 들이면 좋아요!`;
+          }
+          if ((problemLine.match(/"/g) || []).length % 2 !== 0) {
+            reason = `${lineNum}번째 줄에서 따옴표(")가 짝이 맞지 않아요!`;
+            fix = `📝 <strong>해결 방법:</strong><br>
+1️⃣ 따옴표는 항상 짝수 개(2개, 4개, 6개...)가 있어야 해요<br>
+2️⃣ 문자열을 시작할 때 "를 열었으면, 끝날 때 "를 닫아야 해요<br>
+<br>
+<strong>❌ 잘못된 예:</strong><br>
+<code>print("안녕하세요  ← 닫는 따옴표가 없어요!</code><br>
+<br>
+<strong>✅ 올바른 예:</strong><br>
+<code>print("안녕하세요")  ← 따옴표가 열리고 닫혔어요</code><br>
+<br>
+💡 <strong>팁:</strong> 문자열을 쓸 때 따옴표를 먼저 두 개 쓰고, 그 사이에 내용을 넣으면 실수하지 않아요!`;
+          }
+          // 콜론 누락
+          if (/^(if|elif|for|while|def|class)\s+/.test(problemLine.trim()) && !problemLine.includes(':')) {
+            reason = `${lineNum}번째 줄에서 콜론(:)이 빠졌어요!`;
+            const keyword = problemLine.trim().match(/^(if|elif|for|while|def|class)/)?.[1] || '문장';
+            fix = `📝 <strong>해결 방법:</strong><br>
+1️⃣ ${keyword} 문장 뒤에는 반드시 콜론(:)을 붙여야 해요<br>
+2️⃣ 콜론은 "이제 다음 줄에 실행할 내용이 있어요"라는 의미예요<br>
+<br>
+<strong>❌ 잘못된 예:</strong><br>
+<code>for i in range(5)  ← 콜론이 없어요!<br>
+    print(i)</code><br>
+<br>
+<strong>✅ 올바른 예:</strong><br>
+<code>for i in range(5):  ← 콜론 필수!<br>
+    print(i)</code><br>
+<br>
+💡 <strong>팁:</strong> if, for, while, def, class 같은 키워드를 쓰면 항상 콜론(:)을 잊지 마세요!`;
+          }
+        }
+        
+        return {
+          title: '문법 오류를 발견했어요!',
+          reason: reason || `코드에 문법 오류가 있어요. ${lineNum ? lineNum + '번째 줄' : ''}을 확인해보세요.`,
+          fix: fix || `📝 <strong>해결 방법:</strong><br>
+1️⃣ 괄호 ( ) 가 열렸으면 닫혔는지 확인하세요<br>
+2️⃣ 따옴표 " " 가 짝이 맞는지 확인하세요<br>
+3️⃣ if, for, while 뒤에 콜론(:)이 있는지 확인하세요<br>
+4️⃣ 들여쓰기가 올바른지 확인하세요 (같은 블록은 같은 들여쓰기)<br>
+<br>
+💡 <strong>팁:</strong> 코드를 천천히 한 줄씩 읽어보면서 위의 항목들을 체크해보세요!`,
+          errorLine: lineNum ? problemLine : null,
+          lineNum: lineNum
+        };
+      }
+      
+      // NameError: name 'xxx' is not defined
+      if (errorMsg.includes('NameError') || errorMsg.includes('is not defined')) {
+        const nameMatch = errorMsg.match(/name '(\w+)'/);
+        const varName = nameMatch ? nameMatch[1] : null;
+        return {
+          title: '정의되지 않은 변수를 사용했어요!',
+          reason: varName ? `"${varName}"라는 변수를 사용했는데, 아직 정의하지 않았어요.` : '정의되지 않은 변수를 사용했어요.',
+          fix: `📝 <strong>해결 방법:</strong><br>
+1️⃣ 변수를 사용하기 전에 먼저 값을 대입해야 해요<br>
+2️⃣ 변수 이름을 잘못 썼는지 확인하세요 (대소문자도 정확해야 해요)<br>
+3️⃣ 변수가 정의된 줄이 실행되기 전에 사용하려고 했는지 확인하세요<br>
+<br>
+<strong>❌ 잘못된 예:</strong><br>
+<code>print(x)  ← x를 먼저 정의하지 않았어요!<br>
+x = 10</code><br>
+<br>
+<strong>✅ 올바른 예:</strong><br>
+<code>x = 10  ← 먼저 정의<br>
+print(x)  ← 그 다음 사용</code><br>
+<br>
+💡 <strong>팁:</strong> 변수는 사용하기 전에 반드시 먼저 정의해야 해요!`,
+          errorLine: null,
+          lineNum: null
+        };
+      }
+      
+      // IndentationError
+      if (errorMsg.includes('IndentationError')) {
+        const lineMatch = errorMsg.match(/line (\d+)/);
+        const lineNum = lineMatch ? parseInt(lineMatch[1]) : null;
+        return {
+          title: '들여쓰기가 잘못되었어요!',
+          reason: lineNum ? `${lineNum}번째 줄의 들여쓰기가 맞지 않아요.` : '들여쓰기가 잘못되었어요.',
+          fix: `📝 <strong>해결 방법:</strong><br>
+1️⃣ 같은 블록 안의 모든 줄은 같은 들여쓰기를 사용해야 해요<br>
+2️⃣ for, if, while, def 다음 줄은 반드시 4칸 들여쓰기를 해야 해요<br>
+3️⃣ 스페이스와 탭을 섞어 쓰지 마세요! (스페이스 4개 또는 탭 1개 중 하나만 사용)<br>
+<br>
+<strong>❌ 잘못된 예:</strong><br>
+<code>for i in range(5):<br>
+  print(i)  ← 2칸만 들여쓰기 (X)<br>
+    x = i  ← 4칸 들여쓰기 (X, 들여쓰기가 달라요!)</code><br>
+<br>
+<strong>✅ 올바른 예:</strong><br>
+<code>for i in range(5):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;print(i)  ← 4칸 들여쓰기<br>
+&nbsp;&nbsp;&nbsp;&nbsp;x = i  ← 4칸 들여쓰기 (같은 블록은 같은 들여쓰기!)</code><br>
+<br>
+💡 <strong>팁:</strong> 파이썬에서는 들여쓰기가 코드의 구조를 나타내요. 꼼꼼히 맞춰주세요!`,
+          errorLine: lineNum ? lines[lineNum - 1] : null,
+          lineNum: lineNum
+        };
+      }
+      
+      // TypeError
+      if (errorMsg.includes('TypeError')) {
+        return {
+          title: '타입 오류가 발생했어요!',
+          reason: '서로 다른 타입의 값끼리 연산을 하려고 했어요.',
+          fix: `📝 <strong>해결 방법:</strong><br>
+1️⃣ 숫자와 문자열은 직접 더할 수 없어요<br>
+2️⃣ 숫자를 문자열로 바꾸려면 str() 함수를 사용하세요<br>
+3️⃣ 문자열을 숫자로 바꾸려면 int() 또는 float() 함수를 사용하세요<br>
+<br>
+<strong>❌ 잘못된 예:</strong><br>
+<code>print("안녕" + 123)  ← 문자열과 숫자는 더할 수 없어요!</code><br>
+<br>
+<strong>✅ 올바른 예:</strong><br>
+<code>print("안녕" + str(123))  ← 숫자를 문자열로 변환<br>
+또는<br>
+print("안녕" + "123")  ← 둘 다 문자열</code><br>
+<br>
+💡 <strong>팁:</strong> 타입을 확인하려면 type() 함수를 사용해보세요!`,
+          errorLine: null,
+          lineNum: null
+        };
+      }
+      
+      // 일반 오류
+      return {
+        title: '오류가 발생했어요!',
+        reason: errorMsg.includes('line') ? '코드를 실행하는 중에 오류가 발생했어요.' : errorMsg,
+        fix: '코드를 다시 확인해보고, 오류 메시지를 자세히 읽어보세요.',
+        errorLine: null,
+        lineNum: null
+      };
+    }
+
+    // 교사 말풍선 표시
+    function showTeacherBubble(errorInfo) {
+      // 기존 말풍선 제거
+      const existing = document.querySelector('.bubble-overlay');
+      if (existing) existing.remove();
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'bubble-overlay';
+      
+      const bubble = document.createElement('div');
+      bubble.className = 'teacher-bubble';
+      
+      let html = `<h4>${errorInfo.title}</h4>`;
+      // \n을 <br>로 변환하여 줄바꿈이 제대로 표시되도록
+      const reasonHtml = errorInfo.reason.replace(/\n/g, '<br>');
+      const fixHtml = errorInfo.fix.replace(/\n/g, '<br>');
+      html += `<div class="error-reason"><strong>왜 오류가 났을까요?</strong><br>${reasonHtml}</div>`;
+      html += `<div class="error-fix"><strong>이렇게 고쳐봐요!</strong><br>${fixHtml}</div>`;
+      
+      if (errorInfo.errorLine && errorInfo.lineNum) {
+        html += `<div class="error-code">${errorInfo.lineNum}번째 줄: ${escapeHtml(errorInfo.errorLine)}</div>`;
+      }
+      
+      html += `<button class="primary" onclick="this.closest('.bubble-overlay').remove()">알겠어요!</button>`;
+      
+      bubble.innerHTML = html;
+      overlay.appendChild(bubble);
+      document.body.appendChild(overlay);
+      
+      // 오버레이 클릭 시 닫기
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.remove();
+        }
+      });
+    }
+
+    // 실행 준비 버튼: Pyodide로 전체 코드를 실행하면서 줄 단위 실행 기록을 수집
+    startBtn.onclick = async () => {
+      const rawCode = codeInput.value;
+      const rawLines = rawCode.split('\n');
+
+      nextBtn.disabled = true;
+      startBtn.disabled = true;
+      setStatus('Python 엔진 준비 중입니다...');
 
       try {
-        // 원본 코드를 보고, for문을 미리 "펼쳐서" execLines를 만든다
-        execLines = buildExecLines(rawLines);
+        const pyodide = await ensurePyodide();
+
+        pyodide.globals.set("user_code", rawCode);
+
+        const tracerCode = `
+import sys
+
+trace_data = []
+
+def _step_tracer(frame, event, arg):
+    if event != "line":
+        return _step_tracer
+    if frame.f_code.co_filename != "<user_code>":
+        return _step_tracer
+    locs = {k: v for k, v in frame.f_locals.items() if not k.startswith("__")}
+    globs = {k: v for k, v in frame.f_globals.items() if not k.startswith("__")}
+    trace_data.append({"lineno": frame.f_lineno, "locals": locs, "globals": globs})
+    return _step_tracer
+
+code = user_code
+g = {}
+sys.settrace(_step_tracer)
+try:
+    exec(compile(code, "<user_code>", "exec"), g, g)
+finally:
+    sys.settrace(None)
+`;
+
+        await pyodide.runPythonAsync(tracerCode);
+        const pyTrace = pyodide.globals.get("trace_data").toJs({ deep: true });
+
+        traceSteps = Array.isArray(pyTrace) ? pyTrace : [];
+        pc = 0;
+        vars = {};
+
+        if (traceSteps.length === 0) {
+          setStatus('실행할 줄이 없습니다. (빈 코드이거나 실제로 실행되는 줄이 없습니다)');
+          nextBtn.disabled = true;
+        } else {
+          setStatus('실행 준비 완료: "다음 줄 실행"을 눌러보세요.');
+          nextBtn.disabled = false;
+        }
+
+        renderCodeView(rawLines);
+        renderVars();
+        renderFlowchart(rawCode);
       } catch (e) {
-        execLines = [];
+        console.error(e);
+        traceSteps = [];
         pc = 0;
         vars = {};
         nextBtn.disabled = true;
         setStatus('오류: ' + e.message);
         renderCodeView(rawLines);
         renderVars();
-        alert('코드에 오류가 있습니다.\n\n' + e.message);
-        return;
+        
+        // 교사 말풍선으로 친절하게 오류 설명
+        const errorInfo = parsePythonError(e, rawCode);
+        showTeacherBubble(errorInfo);
+      } finally {
+        startBtn.disabled = false;
       }
-
-      pc = 0;
-      vars = {};
-      setStatus('실행 준비 완료: "다음 줄 실행"을 눌러보세요.');
-      nextBtn.disabled = execLines.length === 0;
-      renderCodeView(rawLines);
-      renderVars();
     };
 
-    // 다음 줄 실행 버튼
+    // 수집된 traceSteps 를 한 스텝씩 재생
     nextBtn.onclick = () => {
-      if (pc >= execLines.length) {
+      if (pc >= traceSteps.length) {
         setStatus('이미 모든 줄을 실행했습니다.');
         nextBtn.disabled = true;
         return;
       }
-      const line = execLines[pc];
-      try {
-        runLine(line);
-      } catch (e) {
-        setStatus('실행 중 오류: ' + e.message);
-        alert('실행 중 오류가 발생했습니다.\n\n' + e.message + '\n\n문장: ' + line);
-        nextBtn.disabled = true;
-        return;
+
+      const step = traceSteps[pc];
+      const merged = {};
+
+      if (step.globals) {
+        Object.entries(step.globals).forEach(([k, v]) => {
+          if (k.startsWith('__')) return;
+          merged[k] = String(v);
+        });
       }
+      if (step.locals) {
+        Object.entries(step.locals).forEach(([k, v]) => {
+          if (k.startsWith('__')) return;
+          merged[k] = String(v);
+        });
+      }
+
+      vars = merged;
       pc++;
-      if (pc >= execLines.length) {
+
+      if (pc >= traceSteps.length) {
         setStatus('실행 완료!');
         nextBtn.disabled = true;
       } else {
         setStatus('다음 줄로 이동했습니다.');
       }
-      renderCodeView(codeInput.value.split('\n'));
+
+      const initialCode = codeInput.value;
+      renderCodeView(initialCode.split('\n'));
       renderVars();
+      renderFlowchart(initialCode);
     };
 
-    // 원본 코드에서 execLines 만들기
-    // - 빈 줄, 주석(#)은 제거
-    // - for i in range(N): 블록은 N번 반복으로 "펼침"
-    // - 잘못된 문장은 에러 메시지 던짐
-    function buildExecLines(rawLines) {
-      const result = [];
-      let i = 0;
-
-      while (i < rawLines.length) {
-        const raw = rawLines[i].replace(/\r/g, '');
-        const trimmed = raw.trim();
-
-        // 빈 줄 / 주석은 건너뜀
-        if (trimmed.length === 0 || trimmed.startsWith('#')) {
-          i++;
-          continue;
-        }
-
-        // for i in range(N):  형태인지 확인
-        const forMatch = trimmed.match(/^for\s+([a-zA-Z_]\w*)\s+in\s+range\((.+)\):$/);
-        if (forMatch) {
-          const varName = forMatch[1];
-          const countExpr = forMatch[2].trim();
-
-          // range 안에 정수만 허용
-          const count = Number(countExpr);
-          if (!Number.isInteger(count) || count < 0) {
-            throw new Error(`for문 range()에는 0 이상의 정수만 사용할 수 있습니다: "${trimmed}"`);
-          }
-
-          // 들여쓰기 깊이(스페이스 개수)
-          const indentMatch = raw.match(/^(\s*)/);
-          const baseIndent = indentMatch ? indentMatch[1].length : 0;
-
-          // for 아래에 있는 들여쓴 줄들을 "몸통"으로 수집
-          const body = [];
-          let j = i + 1;
-          while (j < rawLines.length) {
-            const rawBody = rawLines[j].replace(/\r/g, '');
-            const bodyIndentMatch = rawBody.match(/^(\s*)/);
-            const bodyIndent = bodyIndentMatch ? bodyIndentMatch[1].length : 0;
-            const bodyTrimmed = rawBody.trim();
-
-            if (bodyTrimmed.length === 0 || bodyTrimmed.startsWith('#')) {
-              // 비어 있거나 주석은 그냥 건너뛰지만, 루프 몸통의 끝은 아님
-              j++;
-              continue;
-            }
-
-            if (bodyIndent <= baseIndent) {
-              // 들여쓰기 깊이가 같거나 작으면 이 for 블록의 끝
-              break;
-            }
-
-            body.push(bodyTrimmed);  // 들여쓰기는 제거하고 내용만 저장
-            j++;
-          }
-
-          // 몸통이 없으면 에러
-          if (body.length === 0) {
-            throw new Error(`for문 아래에 실행할 코드가 없습니다: "${trimmed}"`);
-          }
-
-          // for를 "펼쳐서" 실행할 줄 목록에 추가
-          for (let k = 0; k < count; k++) {
-            // 반복마다 i = k  같은 대입을 먼저 추가
-            result.push(`${varName} = ${k}`);
-            // 몸통 줄들을 그대로 추가
-            for (const bodyLine of body) {
-              result.push(bodyLine);
-            }
-          }
-
-          // for 블록 전체를 건너뜀
-          i = j;
-          continue;
-        }
-
-        // for가 아니면, 지원하는 문장인지 검사 (대입문인지 확인)
-        if (!trimmed.includes('=')) {
-          throw new Error(`지원하지 않는 문장입니다: "${trimmed}"\n(대입문 또는 for문만 사용할 수 있습니다.)`);
-        }
-
-        // 일반 줄은 trim 해서 그대로 추가
-        result.push(trimmed);
-        i++;
-      }
-
-      return result;
-    }
-
-    // Python 스타일: "이름 = 식" 형태만 지원
-    function runLine(line) {
-      const eqIndex = line.indexOf('=');
-      if (eqIndex === -1) {
-        throw new Error(`대입문이 아닙니다: "${line}"`);
-      }
-
-      const left = line.slice(0, eqIndex).trim();
-      const right = line.slice(eqIndex + 1).trim();
-
-      if (!left.match(/^[a-zA-Z_]\w*$/)) {
-        throw new Error(`잘못된 변수 이름입니다: "${left}"`);
-      }
-      if (right.length === 0) {
-        throw new Error(`대입문의 오른쪽 식이 비어 있습니다: "${line}"`);
-      }
-
-      // 식 안의 식별자를 현재 변수값으로 치환 (없으면 에러)
-      const expr = right.replace(/[a-zA-Z_]\w*/g, name => {
-        if (!(name in vars)) {
-          throw new Error(`정의되지 않은 변수 "${name}" 를 사용했습니다.`);
-        }
-        return vars[name];
-      });
-
-      try {
-        const value = eval(expr);
-        if (typeof value !== 'number' || !Number.isFinite(value)) {
-          throw new Error(`숫자 결과가 아닌 값입니다: ${expr}`);
-        }
-        vars[left] = value;
-      } catch (e) {
-        if (e instanceof Error) {
-          throw new Error(`식 계산 오류: ${e.message} (식: "${right}")`);
-        } else {
-          throw new Error('알 수 없는 계산 오류가 발생했습니다.');
-        }
-      }
-    }
-
-    // 화면에 코드 + 줄 상태 표시 (원본 코드 기준)
+    // 화면에 코드 + 줄 상태 표시 (원본 코드 기준, Pyodide가 기록한 line number 사용)
     function renderCodeView(rawLines) {
-      const current = pc < execLines.length ? execLines[pc].trim() : null;
-      const doneSet = new Set(execLines.slice(0, pc).map(l => l.trim()));
+      const currentLineNo = pc < traceSteps.length ? traceSteps[pc].lineno : null;
+      const doneSet = new Set(traceSteps.slice(0, pc).map(s => s.lineno));
 
       const html = rawLines.map((raw, idx) => {
         const trimmed = raw.trim();
-        const no = (idx + 1).toString().padStart(2, ' ');
+        const lineNo = idx + 1;
+        const no = lineNo.toString().padStart(2, ' ');
         let cls = 'line-normal';
 
         if (trimmed.length === 0 || trimmed.startsWith('#')) {
           cls = 'line-normal';
         } else {
-          if (current && trimmed === current) {
+          if (currentLineNo === lineNo) {
             cls = 'line-current';
-          } else if (doneSet.has(trimmed)) {
+          } else if (doneSet.has(lineNo)) {
             cls = 'line-done';
           }
         }
@@ -610,7 +1019,7 @@ for i in range(5):
         .replace(/>/g, '&gt;');
     }
 
-    // 첫 로딩 시 초기 표시 + 저장된 테마 적용
+    // 첫 로딩 시 초기 표시 + 저장된 테마 적용 + Pyodide 미리 로딩 시작
     window.onload = () => {
       // 테마 복원
       let saved = 'default';
@@ -626,6 +1035,13 @@ for i in range(5):
       renderVars();
       nextBtn.disabled = true;
       setStatus('먼저 "실행 준비"를 누르세요.');
+
+      // 백그라운드에서 Pyodide 미리 로딩 (처음 실행 준비 시간을 줄이기 위함)
+      try {
+        ensurePyodide();
+      } catch (e) {
+        console.error('Pyodide 로딩 시작 중 오류:', e);
+      }
     };
   </script>
 </body>
