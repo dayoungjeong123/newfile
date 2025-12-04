@@ -1,13 +1,632 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>25</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Python 코드 한 줄씩 실행 웹앱</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+
+    /* 기본 색 변수 */
+    :root {
+      --bg: #f5f5f5;
+      --header-bg: #3f51b5;
+      --header-text: #ffffff;
+      --card-bg: #ffffff;
+      --panel-border: #dddddd;
+      --accent: #3f51b5;
+      --accent-soft: #fff8d6;
+      --button-secondary: #e0e0e0;
+      --text-main: #222222;
+      --text-sub: #555555;
+    }
+
+    /* 테마별 색 설정 */
+    body.theme-default {
+      --bg: #f5f5f5;
+      --header-bg: #3f51b5;
+      --header-text: #ffffff;
+      --card-bg: #ffffff;
+      --panel-border: #dddddd;
+      --accent: #3f51b5;
+      --accent-soft: #fff8d6;
+      --button-secondary: #e0e0e0;
+      --text-main: #222222;
+      --text-sub: #555555;
+    }
+
+    body.theme-pastel {
+      --bg: #fff7fb;
+      --header-bg: #ff9eb5;
+      --header-text: #4a154b;
+      --card-bg: #ffffff;
+      --panel-border: #ffd4e5;
+      --accent: #ff7ca3;
+      --accent-soft: #ffe4f0;
+      --button-secondary: #ffe4f4;
+      --text-main: #4a154b;
+      --text-sub: #92516c;
+    }
+
+    body.theme-mint {
+      --bg: #f1fff9;
+      --header-bg: #00c2a8;
+      --header-text: #00352e;
+      --card-bg: #ffffff;
+      --panel-border: #b9f4e7;
+      --accent: #00b894;
+      --accent-soft: #e0fff6;
+      --button-secondary: #d9fff3;
+      --text-main: #00352e;
+      --text-sub: #006f5b;
+    }
+
+    body.theme-dark {
+      --bg: #101318;
+      --header-bg: #181c25;
+      --header-text: #f5f5f5;
+      --card-bg: #1f2430;
+      --panel-border: #343b4a;
+      --accent: #ffca28;
+      --accent-soft: #4b3b15;
+      --button-secondary: #343b4a;
+      --text-main: #f5f5f5;
+      --text-sub: #c3c6cf;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text-main);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .header-left {
+      flex: 1 1 auto;
+      min-width: 200px;
+    }
+
+    .theme-switcher {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 6px 8px;
+      border-radius: 999px;
+    }
+
+    .theme-switcher label {
+      font-weight: 600;
+    }
+
+    .theme-switcher select {
+      border: none;
+      outline: none;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 13px;
+      background: #ffffff;
+      color: #333;
+      cursor: pointer;
+    }
+
+    main {
+      padding: 16px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+      border: 1px solid rgba(0,0,0,0.02);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      font-family: 'JetBrains Mono','Consolas',monospace;
+      font-size: 14px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      background: #ffffff;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform 0.05s ease, box-shadow 0.1s ease, background 0.15s ease;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.18);
+    }
+
+    button.secondary {
+      background: var(--button-secondary);
+      color: var(--text-main);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.18);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #status {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+
+    .layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .panel {
+      flex: 1 1 260px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      padding: 10px;
+    }
+
+    .panel h3 {
+      margin-top: 0;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    pre {
+      margin: 0;
+      font-family: 'JetBrains Mono','Consolas',monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .line-normal { }
+    .line-current { background: var(--accent-soft); }
+    .line-done { color: #999; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      background: #eeeeee;
+      margin-left: 4px;
+    }
+
+    .badge.go { background: #fff59d; }
+    .badge.stop { background: #cfd8dc; }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 18px; }
+      .theme-switcher { width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body class="theme-default">
+  <header>
+    <div class="header-left">
+      <h1>Python 한 줄씩 실행 웹앱</h1>
+      <p>학생 코드의 실행 과정을 <b>줄 단위</b>로 보면서 변수 값이 어떻게 변하는지 확인하세요.</p>
+    </div>
+    <div class="theme-switcher">
+      <label for="theme-select">테마</label>
+      <select id="theme-select">
+        <option value="default">기본</option>
+        <option value="pastel">파스텔</option>
+        <option value="mint">민트</option>
+        <option value="dark">다크</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2 style="margin-top:0; font-size:18px;">1. 코드 입력</h2>
+      <p style="font-size:13px; color:var(--text-sub);">
+        파이썬 스타일의 <b>대입문 + 사칙연산</b>과 <b>for i in range(n):</b> 를 지원합니다.<br>
+        예) <code>x = 1</code>, <code>x = x + 2</code>, <code>y = x * 3</code> · 주석은 <code>#</code> 로 시작
+      </p>
+      <textarea id="code" rows="8">
+# 예시 코드
+x = 0
+for i in range(5):
+    x = x + i
+      </textarea>
+      <div class="controls">
+        <button id="start" class="primary">실행 준비 (초기화)</button>
+        <button id="next" class="secondary">다음 줄 실행</button>
+        <span id="status"></span>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <h3>코드 (줄별 상태)
+          <span class="badge go">노랑: 현재 줄</span>
+          <span class="badge stop">회색: 이미 실행</span>
+        </h3>
+        <pre id="code-view"></pre>
+      </div>
+      <div class="panel">
+        <h3>변수 상태</h3>
+        <pre id="vars"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let execLines = [];   // 실제로 실행할 줄 목록 (for를 펼친 결과 포함)
+    let pc = 0;           // program counter
+    let vars = {};        // 변수 상태
+
+    const codeInput  = document.getElementById('code');
+    const codeView   = document.getElementById('code-view');
+    const varsView   = document.getElementById('vars');
+    const statusView = document.getElementById('status');
+    const startBtn   = document.getElementById('start');
+    const nextBtn    = document.getElementById('next');
+    const themeSelect = document.getElementById('theme-select');
+
+    function setStatus(msg) {
+      statusView.textContent = msg;
+    }
+
+    // 테마 변경 함수
+    function setTheme(name) {
+      const body = document.body;
+      body.classList.remove('theme-default', 'theme-pastel', 'theme-mint', 'theme-dark');
+      body.classList.add('theme-' + name);
+      try {
+        localStorage.setItem('py-stepper-theme', name);
+      } catch (e) {
+        // 저장 실패해도 그냥 무시
+      }
+    }
+
+    themeSelect.onchange = () => {
+      setTheme(themeSelect.value);
+    };
+
+    // ---- 자동 들여쓰기: Enter 누를 때 이전 줄 들여쓰기 유지 + 콜론(:) 뒤에는 4칸 추가 ----
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+
+      e.preventDefault();
+
+      const textarea = codeInput;
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      // 현재 커서 앞부분 기준으로 "이전 줄" 찾기
+      const before = value.slice(0, start);
+      const after = value.slice(end);
+      const lastNewline = before.lastIndexOf('\n');
+      const currentLine = lastNewline === -1 ? before : before.slice(lastNewline + 1);
+
+      // 이전 줄의 앞쪽 공백 개수
+      const indentMatch = currentLine.match(/^(\s*)/);
+      let indent = indentMatch ? indentMatch[1] : '';
+
+      // 줄 끝이 ':' 로 끝나면 파이썬처럼 들여쓰기 한 단계 추가 (4칸)
+      if (currentLine.trim().endsWith(':')) {
+        indent += '    ';
+      }
+
+      const insert = '\n' + indent;
+      const newValue = before + insert + after;
+      textarea.value = newValue;
+
+      const newPos = before.length + insert.length;
+      textarea.selectionStart = textarea.selectionEnd = newPos;
+    });
+
+    // 실행 준비 버튼
+    startBtn.onclick = () => {
+      const rawLines = codeInput.value.split('\n');
+
+      try {
+        // 원본 코드를 보고, for문을 미리 "펼쳐서" execLines를 만든다
+        execLines = buildExecLines(rawLines);
+      } catch (e) {
+        execLines = [];
+        pc = 0;
+        vars = {};
+        nextBtn.disabled = true;
+        setStatus('오류: ' + e.message);
+        renderCodeView(rawLines);
+        renderVars();
+        alert('코드에 오류가 있습니다.\n\n' + e.message);
+        return;
+      }
+
+      pc = 0;
+      vars = {};
+      setStatus('실행 준비 완료: "다음 줄 실행"을 눌러보세요.');
+      nextBtn.disabled = execLines.length === 0;
+      renderCodeView(rawLines);
+      renderVars();
+    };
+
+    // 다음 줄 실행 버튼
+    nextBtn.onclick = () => {
+      if (pc >= execLines.length) {
+        setStatus('이미 모든 줄을 실행했습니다.');
+        nextBtn.disabled = true;
+        return;
+      }
+      const line = execLines[pc];
+      try {
+        runLine(line);
+      } catch (e) {
+        setStatus('실행 중 오류: ' + e.message);
+        alert('실행 중 오류가 발생했습니다.\n\n' + e.message + '\n\n문장: ' + line);
+        nextBtn.disabled = true;
+        return;
+      }
+      pc++;
+      if (pc >= execLines.length) {
+        setStatus('실행 완료!');
+        nextBtn.disabled = true;
+      } else {
+        setStatus('다음 줄로 이동했습니다.');
+      }
+      renderCodeView(codeInput.value.split('\n'));
+      renderVars();
+    };
+
+    // 원본 코드에서 execLines 만들기
+    // - 빈 줄, 주석(#)은 제거
+    // - for i in range(N): 블록은 N번 반복으로 "펼침"
+    // - 잘못된 문장은 에러 메시지 던짐
+    function buildExecLines(rawLines) {
+      const result = [];
+      let i = 0;
+
+      while (i < rawLines.length) {
+        const raw = rawLines[i].replace(/\r/g, '');
+        const trimmed = raw.trim();
+
+        // 빈 줄 / 주석은 건너뜀
+        if (trimmed.length === 0 || trimmed.startsWith('#')) {
+          i++;
+          continue;
+        }
+
+        // for i in range(N):  형태인지 확인
+        const forMatch = trimmed.match(/^for\s+([a-zA-Z_]\w*)\s+in\s+range\((.+)\):$/);
+        if (forMatch) {
+          const varName = forMatch[1];
+          const countExpr = forMatch[2].trim();
+
+          // range 안에 정수만 허용
+          const count = Number(countExpr);
+          if (!Number.isInteger(count) || count < 0) {
+            throw new Error(`for문 range()에는 0 이상의 정수만 사용할 수 있습니다: "${trimmed}"`);
+          }
+
+          // 들여쓰기 깊이(스페이스 개수)
+          const indentMatch = raw.match(/^(\s*)/);
+          const baseIndent = indentMatch ? indentMatch[1].length : 0;
+
+          // for 아래에 있는 들여쓴 줄들을 "몸통"으로 수집
+          const body = [];
+          let j = i + 1;
+          while (j < rawLines.length) {
+            const rawBody = rawLines[j].replace(/\r/g, '');
+            const bodyIndentMatch = rawBody.match(/^(\s*)/);
+            const bodyIndent = bodyIndentMatch ? bodyIndentMatch[1].length : 0;
+            const bodyTrimmed = rawBody.trim();
+
+            if (bodyTrimmed.length === 0 || bodyTrimmed.startsWith('#')) {
+              // 비어 있거나 주석은 그냥 건너뛰지만, 루프 몸통의 끝은 아님
+              j++;
+              continue;
+            }
+
+            if (bodyIndent <= baseIndent) {
+              // 들여쓰기 깊이가 같거나 작으면 이 for 블록의 끝
+              break;
+            }
+
+            body.push(bodyTrimmed);  // 들여쓰기는 제거하고 내용만 저장
+            j++;
+          }
+
+          // 몸통이 없으면 에러
+          if (body.length === 0) {
+            throw new Error(`for문 아래에 실행할 코드가 없습니다: "${trimmed}"`);
+          }
+
+          // for를 "펼쳐서" 실행할 줄 목록에 추가
+          for (let k = 0; k < count; k++) {
+            // 반복마다 i = k  같은 대입을 먼저 추가
+            result.push(`${varName} = ${k}`);
+            // 몸통 줄들을 그대로 추가
+            for (const bodyLine of body) {
+              result.push(bodyLine);
+            }
+          }
+
+          // for 블록 전체를 건너뜀
+          i = j;
+          continue;
+        }
+
+        // for가 아니면, 지원하는 문장인지 검사 (대입문인지 확인)
+        if (!trimmed.includes('=')) {
+          throw new Error(`지원하지 않는 문장입니다: "${trimmed}"\n(대입문 또는 for문만 사용할 수 있습니다.)`);
+        }
+
+        // 일반 줄은 trim 해서 그대로 추가
+        result.push(trimmed);
+        i++;
+      }
+
+      return result;
+    }
+
+    // Python 스타일: "이름 = 식" 형태만 지원
+    function runLine(line) {
+      const eqIndex = line.indexOf('=');
+      if (eqIndex === -1) {
+        throw new Error(`대입문이 아닙니다: "${line}"`);
+      }
+
+      const left = line.slice(0, eqIndex).trim();
+      const right = line.slice(eqIndex + 1).trim();
+
+      if (!left.match(/^[a-zA-Z_]\w*$/)) {
+        throw new Error(`잘못된 변수 이름입니다: "${left}"`);
+      }
+      if (right.length === 0) {
+        throw new Error(`대입문의 오른쪽 식이 비어 있습니다: "${line}"`);
+      }
+
+      // 식 안의 식별자를 현재 변수값으로 치환 (없으면 에러)
+      const expr = right.replace(/[a-zA-Z_]\w*/g, name => {
+        if (!(name in vars)) {
+          throw new Error(`정의되지 않은 변수 "${name}" 를 사용했습니다.`);
+        }
+        return vars[name];
+      });
+
+      try {
+        const value = eval(expr);
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+          throw new Error(`숫자 결과가 아닌 값입니다: ${expr}`);
+        }
+        vars[left] = value;
+      } catch (e) {
+        if (e instanceof Error) {
+          throw new Error(`식 계산 오류: ${e.message} (식: "${right}")`);
+        } else {
+          throw new Error('알 수 없는 계산 오류가 발생했습니다.');
+        }
+      }
+    }
+
+    // 화면에 코드 + 줄 상태 표시 (원본 코드 기준)
+    function renderCodeView(rawLines) {
+      const current = pc < execLines.length ? execLines[pc].trim() : null;
+      const doneSet = new Set(execLines.slice(0, pc).map(l => l.trim()));
+
+      const html = rawLines.map((raw, idx) => {
+        const trimmed = raw.trim();
+        const no = (idx + 1).toString().padStart(2, ' ');
+        let cls = 'line-normal';
+
+        if (trimmed.length === 0 || trimmed.startsWith('#')) {
+          cls = 'line-normal';
+        } else {
+          if (current && trimmed === current) {
+            cls = 'line-current';
+          } else if (doneSet.has(trimmed)) {
+            cls = 'line-done';
+          }
+        }
+
+        return `<span class="${cls}">${no} | ${escapeHtml(raw)}</span>`;
+      }).join('\n');
+
+      codeView.innerHTML = html;
+    }
+
+    function renderVars() {
+      const keys = Object.keys(vars);
+      if (keys.length === 0) {
+        varsView.textContent = '(아직 어떤 변수도 정의되지 않았습니다)';
+        return;
+      }
+      varsView.textContent =
+        keys.map(k => `${k} = ${vars[k]}`).join('\n');
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // 첫 로딩 시 초기 표시 + 저장된 테마 적용
+    window.onload = () => {
+      // 테마 복원
+      let saved = 'default';
+      try {
+        saved = localStorage.getItem('py-stepper-theme') || 'default';
+      } catch (e) {
+        saved = 'default';
+      }
+      themeSelect.value = saved;
+      setTheme(saved);
+
+      renderCodeView(codeInput.value.split('\n'));
+      renderVars();
+      nextBtn.disabled = true;
+      setStatus('먼저 "실행 준비"를 누르세요.');
+    };
+  </script>
+</body>
 </html>
