@@ -211,10 +211,9 @@
 <main>
   <nav class="toc">
     <a href="#s1">1. IP 주소와 서브넷 마스크</a>
-    <a href="#s2">2. 2진수와 AND 연산</a>
-    <a href="#s3">3. CIDR 표기법</a>
-    <a href="#s4">4. 서브넷 계산기</a>
-    <a href="#s5">5. 연습 문제</a>
+    <a href="#s3">2. CIDR 표기법</a>
+    <a href="#s4">3. 서브넷 계산기</a>
+    <a href="#s5">4. 연습 문제</a>
   </nav>
 
   <!-- 1. 개념 -->
@@ -249,57 +248,9 @@
     </div>
   </section>
 
-  <!-- 2. 2진수 & AND -->
-  <section class="card" id="s2">
-    <h2><span class="num">2</span> 2진수로 보는 IP 주소와 AND 연산</h2>
-    <p>
-      컴퓨터는 IP 주소와 서브넷 마스크를 2진수로 다뤄요. 서브넷 마스크에서 <strong>1</strong>인 비트는
-      네트워크 부분, <strong>0</strong>인 비트는 호스트 부분을 의미합니다.
-    </p>
-    <h3>예시: 192.168.1.10 / 255.255.255.0</h3>
-
-    <div class="bits-caption">IP 주소</div>
-    <div class="bits-line">
-      <div class="octet-bits" id="ex-ip-0"></div>
-      <div class="octet-bits" id="ex-ip-1"></div>
-      <div class="octet-bits" id="ex-ip-2"></div>
-      <div class="octet-bits" id="ex-ip-3"></div>
-    </div>
-    <div class="bits-caption">서브넷 마스크</div>
-    <div class="bits-line">
-      <div class="octet-bits" id="ex-mask-0"></div>
-      <div class="octet-bits" id="ex-mask-1"></div>
-      <div class="octet-bits" id="ex-mask-2"></div>
-      <div class="octet-bits" id="ex-mask-3"></div>
-    </div>
-    <div class="bits-caption">AND 연산 결과 → 네트워크 주소</div>
-    <div class="bits-line">
-      <div class="octet-bits" id="ex-net-0"></div>
-      <div class="octet-bits" id="ex-net-1"></div>
-      <div class="octet-bits" id="ex-net-2"></div>
-      <div class="octet-bits" id="ex-net-3"></div>
-    </div>
-    <div class="legend">
-      <span><i class="net"></i> 네트워크 비트(마스크=1)</span>
-      <span><i class="host"></i> 호스트 비트(마스크=0)</span>
-    </div>
-
-    <p>
-      <strong>AND 연산</strong>은 두 비트가 모두 1일 때만 결과가 1이 되는 연산이에요.
-      IP 주소와 서브넷 마스크를 비트 단위로 AND 연산하면, 마스크가 0인 자리(호스트 부분)는
-      전부 0으로 바뀌고 마스크가 1인 자리(네트워크 부분)는 IP 주소 값이 그대로 남아요.
-      그 결과가 바로 <strong>네트워크 주소</strong>입니다.
-    </p>
-    <div class="teacher-bubble">
-      <h4>🧑‍🏫 선생님 한마디</h4>
-      AND 연산표: 1 AND 1 = 1, 1 AND 0 = 0, 0 AND 1 = 0, 0 AND 0 = 0.
-      "둘 다 1이어야만 1"이라고 외워두면 편해요. 그래서 마스크의 0 부분을 곱하면(AND) 항상 0이 되는 거죠.
-    </div>
-  </section>
-
   <!-- 3. CIDR -->
   <section class="card" id="s3">
-    <h2><span class="num">3</span> CIDR 표기법 (/24 같은 표기)</h2>
+    <h2><span class="num">2</span> CIDR 표기법 (/24 같은 표기)</h2>
     <p>
       서브넷 마스크를 <code>255.255.255.0</code>처럼 매번 쓰기보다, 1의 개수만 세어서
       <code>/24</code>처럼 표현하는 방법을 <strong>CIDR(사이더) 표기법</strong>이라고 해요.
@@ -322,7 +273,7 @@
 
   <!-- 4. 계산기 -->
   <section class="card" id="s4">
-    <h2><span class="num">4</span> 서브넷 계산기 (직접 해보기)</h2>
+    <h2><span class="num">3</span> 서브넷 계산기 (직접 해보기)</h2>
     <p>IP 주소와 CIDR을 입력하면 서브넷 마스크, 네트워크 주소, 브로드캐스트 주소, 사용 가능한 호스트 범위를 바로 계산해줘요.</p>
 
     <div class="calc-grid">
@@ -345,7 +296,7 @@
 
   <!-- 5. 연습문제 -->
   <section class="card" id="s5">
-    <h2><span class="num">5</span> 연습 문제</h2>
+    <h2><span class="num">4</span> 연습 문제</h2>
     <p>아래 문제를 풀어보고 "정답 보기"를 눌러 확인해 보세요. 위의 계산기로 직접 검산해봐도 좋아요!</p>
     <div id="quizArea"></div>
   </section>
@@ -394,17 +345,7 @@
     }
   }
 
-  // ---------- 섹션 2: 고정 예시 ----------
-  (function initExample() {
-    const ip = [192,168,1,10];
-    const mask = [255,255,255,0];
-    const net = andOctets(ip, mask);
-    renderBitsLine(['ex-ip-0','ex-ip-1','ex-ip-2','ex-ip-3'], ip, mask);
-    renderBitsLine(['ex-mask-0','ex-mask-1','ex-mask-2','ex-mask-3'], mask, mask);
-    renderBitsLine(['ex-net-0','ex-net-1','ex-net-2','ex-net-3'], net, mask);
-  })();
-
-  // ---------- 섹션 3: CIDR 표 ----------
+// ---------- 섹션 3: CIDR 표 ----------
   (function initCidrTable() {
     const tbody = document.getElementById('cidrTable');
     const commonList = [8,16,24,25,26,27,28,29,30];
@@ -462,7 +403,7 @@
       <div class="bits-line" id="c-ip"></div>
       <div class="bits-caption">서브넷 마스크 (/${cidr})</div>
       <div class="bits-line" id="c-mask"></div>
-      <div class="bits-caption">네트워크 주소 (AND 연산 결과)</div>
+      <div class="bits-caption">네트워크 주소</div>
       <div class="bits-line" id="c-net"></div>
       <div class="legend">
         <span><i class="net"></i> 네트워크 비트</span>
