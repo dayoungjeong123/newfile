@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <title>서브넷 마스크 이해하기</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <style>
   * { box-sizing: border-box; }
 
@@ -57,12 +58,25 @@
     --ok: #66bb6a; --bad: #ef5350;
   }
 
+  :root {
+    --font-body: 'Gowun Dodum', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-display: 'Jua', 'Gowun Dodum', system-ui, sans-serif;
+  }
+
   body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-body);
     margin: 0;
     background: var(--bg);
     color: var(--text-main);
     transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  h1, h2, .teacher-bubble h4, button, nav.toc a, .zone-title, .game-score, .ip-card, .num {
+    font-family: var(--font-display);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   }
 
   header {
@@ -78,8 +92,14 @@
     z-index: 10;
   }
   header .header-left { flex: 1 1 auto; min-width: 220px; }
-  header h1 { margin: 0; font-size: 21px; }
+  header h1 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 8px; }
   header p { margin: 4px 0 0; font-size: 13px; opacity: 0.9; }
+  .header-mascot { animation: mascot-wiggle 2.6s ease-in-out infinite; transform-origin: 50% 90%; }
+  @keyframes mascot-wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
 
   .theme-switcher {
     display: flex; align-items: center; gap: 6px; font-size: 13px;
@@ -102,9 +122,10 @@
   section.card {
     background: var(--card-bg);
     border: 1px solid var(--panel-border);
-    border-radius: 12px;
+    border-radius: 22px;
     padding: 20px;
     margin-bottom: 20px;
+    box-shadow: 0 3px 0 var(--panel-border);
   }
   section.card h2 {
     margin-top: 0; font-size: 19px; display: flex; align-items: center; gap: 8px;
@@ -124,7 +145,7 @@
   .octet-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
   .octet-box {
     flex: 1 1 90px; min-width: 90px; text-align: center;
-    border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px 6px;
+    border: 2px solid var(--panel-border); border-radius: 16px; padding: 10px 6px;
     background: var(--bg);
   }
   .octet-box .label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
@@ -164,22 +185,26 @@
   @media (max-width: 640px) { .calc-grid { grid-template-columns: 1fr; } }
   .field label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
   .field input, .field select {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--panel-border);
-    border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text-main);
+    width: 100%; padding: 9px 12px; border: 2px solid var(--panel-border);
+    border-radius: 14px; font-size: 14px; background: var(--bg); color: var(--text-main);
   }
 
   .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 10px; margin-top: 14px; }
   .result-box {
-    background: var(--accent-soft); border-radius: 8px; padding: 10px 12px;
+    background: var(--accent-soft); border-radius: 16px; padding: 10px 12px;
   }
   .result-box .label { font-size: 11px; color: var(--text-sub); }
   .result-box .val { font-size: 15px; font-weight: 700; margin-top: 2px; word-break: break-all; }
 
   .teacher-bubble {
-    position: relative; background: var(--accent-soft); border: 1px solid var(--panel-border);
-    border-radius: 10px; padding: 12px 14px; margin: 14px 0; font-size: 13.5px; color: var(--text-main);
+    position: relative; background: var(--accent-soft); border: 2px solid var(--panel-border);
+    border-radius: 18px; padding: 12px 14px 12px 52px; margin: 16px 0; font-size: 13.5px; color: var(--text-main);
   }
   .teacher-bubble h4 { margin: 0 0 6px; font-size: 13px; color: var(--accent); }
+  .teacher-bubble .mascot-avatar {
+    position: absolute; left: -10px; top: 50%; transform: translateY(-50%) rotate(-6deg);
+    width: 44px; height: 44px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+  }
 
   .network-diagram, .analogy-diagram { margin: 18px 0 4px; }
   .network-diagram svg, .analogy-diagram svg { width: 100%; height: auto; display: block; }
@@ -187,58 +212,113 @@
 
   .game-tray {
     display: flex; flex-wrap: wrap; gap: 10px; min-height: 60px;
-    padding: 12px; margin: 14px 0; border: 2px dashed var(--panel-border); border-radius: 12px;
+    padding: 12px; margin: 14px 0; border: 3px dashed var(--panel-border); border-radius: 18px;
   }
   .ip-card {
     touch-action: none; user-select: none; cursor: grab;
-    background: var(--card-bg); border: 2px solid var(--accent); border-radius: 8px;
-    padding: 9px 14px; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+    background: var(--card-bg); border: 2px solid var(--accent); border-radius: 999px;
+    padding: 9px 16px; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;
+    box-shadow: 0 3px 0 var(--accent);
+    transition: transform 0.15s ease;
   }
+  .ip-card:not(.placed):hover { transform: translateY(-3px) scale(1.04); }
   .ip-card:active { cursor: grabbing; }
   .ip-card.dragging { opacity: 0.9; box-shadow: 0 10px 18px rgba(0,0,0,0.22); }
   .ip-card.placed { cursor: default; }
-  .ip-card.correct { border-color: var(--ok); color: var(--ok); }
-  .ip-card.incorrect { border-color: var(--bad); color: var(--bad); }
+  .ip-card.correct { border-color: var(--ok); color: var(--ok); box-shadow: 0 3px 0 var(--ok); }
+  .ip-card.incorrect { border-color: var(--bad); color: var(--bad); box-shadow: 0 3px 0 var(--bad); }
 
   .game-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 640px) { .game-zones { grid-template-columns: 1fr; } }
   .drop-zone {
-    border: 2px dashed var(--panel-border); border-radius: 12px; padding: 12px; min-height: 150px;
+    border: 3px dashed var(--panel-border); border-radius: 18px; padding: 12px; min-height: 150px;
     background: var(--bg); transition: background 0.15s ease, border-color 0.15s ease;
   }
   .drop-zone.hover { border-color: var(--accent); background: var(--accent-soft); }
-  .zone-title { font-weight: 700; font-size: 14px; }
+  .zone-title { font-weight: 700; font-size: 15px; }
   .zone-sub { font-size: 11px; color: var(--text-sub); margin-bottom: 8px; }
   .zone-cards { display: flex; flex-wrap: wrap; gap: 8px; }
 
   .game-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-  .game-score { font-weight: 700; font-size: 14px; }
+  .game-score-wrap { display: flex; align-items: center; gap: 8px; }
+  .game-mascot { width: 40px; height: 40px; flex: none; }
+  .game-mascot.bounce { animation: mascot-bounce 0.5s ease; }
+  .game-score { font-weight: 700; font-size: 15px; }
   .game-msg { margin-top: 8px; font-size: 13px; font-weight: 600; min-height: 18px; }
 
+  @keyframes mascot-bounce {
+    0% { transform: scale(1) rotate(0deg); }
+    35% { transform: scale(1.25) rotate(-8deg); }
+    65% { transform: scale(0.95) rotate(6deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
   .quiz-item {
-    border: 1px solid var(--panel-border); border-radius: 10px; padding: 14px; margin-bottom: 12px;
+    border: 2px solid var(--panel-border); border-radius: 18px; padding: 14px; margin-bottom: 12px;
   }
   .quiz-item .q { font-weight: 600; margin-bottom: 8px; }
   .quiz-item .answer {
-    display: none; margin-top: 10px; padding: 10px; background: var(--accent-soft); border-radius: 8px; font-size: 13.5px;
+    display: none; margin-top: 10px; padding: 10px; background: var(--accent-soft); border-radius: 14px; font-size: 13.5px;
   }
   .quiz-item .answer.show { display: block; }
   button {
-    background: var(--accent); color: #fff; border: none; border-radius: 8px;
-    padding: 8px 14px; font-size: 13px; cursor: pointer;
+    background: var(--accent); color: #fff; border: none; border-radius: 999px;
+    padding: 9px 18px; font-size: 13.5px; cursor: pointer; font-weight: 700;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
   }
   button.secondary { background: var(--button-secondary); color: var(--text-main); }
-  button:hover { filter: brightness(1.05); }
+  button:hover { filter: brightness(1.06); transform: translateY(-2px); }
+  button:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
 
   .error-msg { color: #e53935; font-size: 12.5px; margin-top: 6px; min-height: 16px; }
 </style>
 </head>
 <body class="theme-default">
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="mascotBase">
+      <path d="M35,25 L28,10" stroke="var(--net-bit)" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="28" cy="9" r="4" fill="var(--host-bit)"/>
+      <path d="M65,25 L72,10" stroke="var(--net-bit)" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="72" cy="9" r="4" fill="var(--host-bit)"/>
+      <rect x="15" y="25" width="70" height="55" rx="18" fill="var(--net-bit)"/>
+      <rect x="25" y="38" width="50" height="32" rx="12" fill="var(--card-bg)"/>
+    </g>
+    <symbol id="mascotNeutral" viewBox="0 0 100 100">
+      <use href="#mascotBase"/>
+      <circle cx="40" cy="54" r="4" fill="var(--text-main)"/>
+      <circle cx="60" cy="54" r="4" fill="var(--text-main)"/>
+      <ellipse cx="32" cy="62" rx="5" ry="3" fill="var(--host-bit)" opacity="0.55"/>
+      <ellipse cx="68" cy="62" rx="5" ry="3" fill="var(--host-bit)" opacity="0.55"/>
+      <path d="M46,61 Q50,65 54,61" stroke="var(--text-main)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="mascotHappy" viewBox="0 0 100 100">
+      <use href="#mascotBase"/>
+      <path d="M34,55 Q40,47 46,55" stroke="var(--text-main)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M54,55 Q60,47 66,55" stroke="var(--text-main)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="32" cy="62" rx="5" ry="3" fill="var(--host-bit)" opacity="0.7"/>
+      <ellipse cx="68" cy="62" rx="5" ry="3" fill="var(--host-bit)" opacity="0.7"/>
+      <path d="M40,59 Q50,72 60,59 Q50,66 40,59 Z" fill="var(--text-main)"/>
+      <path d="M12,20 L16,24 M12,28 L16,24" stroke="var(--host-bit)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M84,32 L89,36 M84,40 L89,36" stroke="var(--host-bit)" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="mascotSad" viewBox="0 0 100 100">
+      <use href="#mascotBase"/>
+      <line x1="34" y1="49" x2="43" y2="52" stroke="var(--text-main)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="66" y1="49" x2="57" y2="52" stroke="var(--text-main)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="57" r="3.5" fill="var(--text-main)"/>
+      <circle cx="60" cy="57" r="3.5" fill="var(--text-main)"/>
+      <path d="M44,64 Q50,70 56,64" stroke="var(--text-main)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M66,58 Q70,63 67,68" stroke="var(--net-bit)" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>
+    </symbol>
+  </defs>
+</svg>
+
 <header>
   <div class="header-left">
-    <h1>🌐 서브넷 마스크 이해하기</h1>
+    <h1><svg class="header-mascot" viewBox="0 0 100 100" width="40" height="40" role="img" aria-label="네트워크 친구 캐릭터"><use href="#mascotHappy"/></svg> 서브넷 마스크 이해하기</h1>
     <p>IP 주소, 네트워크/호스트, CIDR, 서브넷 계산까지 한 번에 배우는 수업 자료</p>
   </div>
   <div class="theme-switcher">
@@ -286,7 +366,8 @@
       마지막 1개 옥텟(8비트)은 그 네트워크 안의 호스트(기기)를 구분하는 데 사용돼요.
     </p>
     <div class="teacher-bubble">
-      <h4>🧑‍🏫 선생님 한마디</h4>
+      <svg class="mascot-avatar" viewBox="0 0 100 100" role="img" aria-label="네트워크 친구 캐릭터"><use href="#mascotNeutral"/></svg>
+      <h4>선생님 한마디</h4>
       서브넷 마스크는 "이 IP 주소에서 어디까지가 동네(네트워크) 이름이고, 어디부터가 집(호스트) 번호인지"
       알려주는 규칙이라고 생각하면 쉬워요. 같은 네트워크에 속한 기기끼리는 스위치나 공유기를 통해 바로 통신할 수 있지만,
       다른 네트워크에 있는 기기와 통신하려면 라우터를 거쳐야 해요.
@@ -433,7 +514,8 @@
       <tbody id="cidrTable"></tbody>
     </table>
     <div class="teacher-bubble">
-      <h4>🧑‍🏫 선생님 한마디</h4>
+      <svg class="mascot-avatar" viewBox="0 0 100 100" role="img" aria-label="네트워크 친구 캐릭터"><use href="#mascotNeutral"/></svg>
+      <h4>선생님 한마디</h4>
       호스트 수를 구하는 공식은 <code>2^(호스트 비트 수) - 2</code>예요. 2를 빼는 이유는
       호스트 부분이 전부 0인 주소(네트워크 주소)와 전부 1인 주소(브로드캐스트 주소)는
       실제 기기에 할당할 수 없기 때문이에요.
@@ -484,7 +566,10 @@
       </div>
     </div>
     <div class="game-footer">
-      <div class="game-score" id="gameScore">점수: 0 / 6</div>
+      <div class="game-score-wrap">
+        <svg class="game-mascot" id="gameMascot" viewBox="0 0 100 100" role="img" aria-label="네트워크 친구 캐릭터 반응"><use id="gameMascotUse" href="#mascotNeutral"/></svg>
+        <div class="game-score" id="gameScore">점수: 0 / 6</div>
+      </div>
       <button class="secondary" id="gameResetBtn">🔄 새 문제 받기</button>
     </div>
     <div class="game-msg" id="gameMsg"></div>
@@ -642,9 +727,18 @@
     const scoreEl = document.getElementById('gameScore');
     const msgEl = document.getElementById('gameMsg');
     const resetBtn = document.getElementById('gameResetBtn');
+    const mascotEl = document.getElementById('gameMascot');
+    const mascotUse = document.getElementById('gameMascotUse');
 
     let total = 0, correctCount = 0, placedCount = 0;
     let dragState = null;
+
+    function setMascot(state) {
+      mascotUse.setAttribute('href', '#mascot' + state);
+      mascotEl.classList.remove('bounce');
+      void mascotEl.offsetWidth;
+      mascotEl.classList.add('bounce');
+    }
 
     function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
@@ -654,6 +748,8 @@
       zoneDiff.querySelector('.zone-cards').innerHTML = '';
       msgEl.textContent = '';
       correctCount = 0; placedCount = 0;
+      mascotUse.setAttribute('href', '#mascotNeutral');
+      mascotEl.classList.remove('bounce');
 
       const items = [];
       const usedLast = new Set();
@@ -752,6 +848,7 @@
         if (rightAnswer) correctCount++;
         placedCount++;
         updateScore();
+        setMascot(rightAnswer ? 'Happy' : 'Sad');
         msgEl.style.color = rightAnswer ? 'var(--ok)' : 'var(--bad)';
         msgEl.textContent = rightAnswer
           ? '정답이에요! 🎉'
