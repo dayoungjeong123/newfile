@@ -166,6 +166,17 @@
   .bit.zero { opacity: 0.55; }
   .bits-caption { font-size: 12px; color: var(--text-sub); margin-bottom: 2px; }
 
+  .bit-ruler { margin: 16px 0 20px; }
+  .bit-ruler-caption { font-size: 12.5px; color: var(--text-sub); margin-bottom: 8px; line-height: 1.5; }
+  .bit-ruler .bits-line { overflow-x: auto; padding-bottom: 4px; }
+  .bit-ruler-segments {
+    display: flex; margin-top: 6px; border-radius: 12px; overflow: hidden;
+    font-size: 11px; font-weight: 700; color: #fff; text-align: center;
+  }
+  .bit-ruler-segments .seg { padding: 7px 4px; }
+  .bit-ruler-segments .seg.net { background: var(--net-bit); }
+  .bit-ruler-segments .seg.host { background: var(--host-bit); }
+
   .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-sub); margin-top: 8px; flex-wrap: wrap; }
   .legend span { display: inline-flex; align-items: center; gap: 5px; }
   .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
@@ -506,6 +517,16 @@
       <code>/24</code>처럼 표현하는 방법을 <strong>CIDR(사이더) 표기법</strong>이라고 해요.
       <code>192.168.1.10/24</code>는 "192.168.1.10 주소이고, 앞의 24비트가 네트워크 부분"이라는 뜻입니다.
     </p>
+
+    <figure class="bit-ruler">
+      <figcaption class="bit-ruler-caption">IP 주소의 32비트를 한 줄로 쭉 펼친 모습이에요. <code>/24</code>는 앞의 24개 칸까지 네트워크라는 뜻!</figcaption>
+      <div class="bits-line" id="cidrRuler"></div>
+      <div class="bit-ruler-segments">
+        <div class="seg net" style="flex:24">네트워크 (24비트)</div>
+        <div class="seg host" style="flex:8">호스트 (8비트)</div>
+      </div>
+    </figure>
+
     <table>
       <caption>자주 쓰는 CIDR과 서브넷 마스크 대응표</caption>
       <thead>
@@ -625,6 +646,18 @@
       }
     }
   }
+
+// ---------- 섹션 2: 32비트 자 ----------
+  (function initBitRuler() {
+    const wrap = document.getElementById('cidrRuler');
+    const mask24 = cidrToMaskOctets(24);
+    ['r-0', 'r-1', 'r-2', 'r-3'].forEach(id => {
+      const d = document.createElement('div');
+      d.id = id; d.className = 'octet-bits';
+      wrap.appendChild(d);
+    });
+    renderBitsLine(['r-0', 'r-1', 'r-2', 'r-3'], mask24, mask24);
+  })();
 
 // ---------- 섹션 3: CIDR 표 ----------
   (function initCidrTable() {
