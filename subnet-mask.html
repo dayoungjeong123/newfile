@@ -172,6 +172,10 @@
   }
   .teacher-bubble h4 { margin: 0 0 6px; font-size: 13px; color: var(--accent); }
 
+  .network-diagram { margin: 18px 0 4px; }
+  .network-diagram svg { width: 100%; height: auto; display: block; }
+  .network-diagram figcaption { font-size: 12.5px; color: var(--text-sub); margin-top: 8px; line-height: 1.5; text-align: center; }
+
   .quiz-item {
     border: 1px solid var(--panel-border); border-radius: 10px; padding: 14px; margin-bottom: 12px;
   }
@@ -246,6 +250,92 @@
       알려주는 규칙이라고 생각하면 쉬워요. 같은 네트워크에 속한 기기끼리는 스위치나 공유기를 통해 바로 통신할 수 있지만,
       다른 네트워크에 있는 기기와 통신하려면 라우터를 거쳐야 해요.
     </div>
+
+    <figure class="network-diagram">
+      <svg viewBox="0 0 800 400" role="img" aria-label="192.168.1.0/24 네트워크 안의 PC끼리는 스위치로 바로 통신하지만, 192.168.2.0/24처럼 다른 네트워크의 PC와 통신하려면 라우터를 거쳐야 하는 모습을 보여주는 그림" font-family="system-ui, -apple-system, sans-serif">
+        <defs>
+          <g id="pcIcon">
+            <rect x="-28" y="-18" width="56" height="32" rx="3" fill="var(--card-bg)" stroke="var(--text-main)" stroke-width="1.5"/>
+            <rect x="-4" y="14" width="8" height="8" fill="var(--text-main)"/>
+            <rect x="-16" y="22" width="32" height="5" rx="2" fill="var(--text-main)"/>
+          </g>
+          <g id="switchIcon">
+            <rect x="-30" y="-14" width="60" height="28" rx="4" fill="var(--card-bg)" stroke="var(--text-main)" stroke-width="1.5"/>
+            <line x1="-20" y1="6" x2="-20" y2="12" stroke="var(--text-main)" stroke-width="1.5"/>
+            <line x1="-8" y1="6" x2="-8" y2="12" stroke="var(--text-main)" stroke-width="1.5"/>
+            <line x1="4" y1="6" x2="4" y2="12" stroke="var(--text-main)" stroke-width="1.5"/>
+            <line x1="16" y1="6" x2="16" y2="12" stroke="var(--text-main)" stroke-width="1.5"/>
+          </g>
+          <g id="routerIcon">
+            <rect x="-22" y="-22" width="44" height="44" rx="10" fill="var(--card-bg)" stroke="var(--text-main)" stroke-width="1.5"/>
+            <path d="M-8,-22 L-14,-32" stroke="var(--text-main)" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="-14" cy="-32" r="2.5" fill="var(--text-main)"/>
+            <path d="M8,-22 L14,-32" stroke="var(--text-main)" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="14" cy="-32" r="2.5" fill="var(--text-main)"/>
+          </g>
+          <marker id="arrowNet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--net-bit)"/>
+          </marker>
+          <marker id="arrowHost" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--host-bit)"/>
+          </marker>
+        </defs>
+
+        <!-- 네트워크 경계 -->
+        <rect x="10" y="100" width="360" height="240" rx="16" fill="var(--bg)" stroke="var(--panel-border)" stroke-width="2" stroke-dasharray="7 6"/>
+        <rect x="430" y="100" width="360" height="240" rx="16" fill="var(--bg)" stroke="var(--panel-border)" stroke-width="2" stroke-dasharray="7 6"/>
+        <text x="26" y="126" font-size="13" font-weight="700" fill="var(--text-main)">네트워크 A · 192.168.1.0/24</text>
+        <text x="446" y="126" font-size="13" font-weight="700" fill="var(--text-main)">네트워크 B · 192.168.2.0/24</text>
+
+        <!-- 배선 (구조) -->
+        <g stroke="var(--text-sub)" stroke-width="1.5" opacity="0.55">
+          <line x1="160" y1="175" x2="310" y2="225"/>
+          <line x1="160" y1="290" x2="310" y2="225"/>
+          <line x1="310" y1="225" x2="378" y2="220"/>
+          <line x1="422" y1="220" x2="490" y2="225"/>
+          <line x1="490" y1="225" x2="640" y2="175"/>
+          <line x1="490" y1="225" x2="640" y2="290"/>
+        </g>
+
+        <!-- 장치 아이콘 -->
+        <use href="#pcIcon" transform="translate(160,175)"/>
+        <use href="#pcIcon" transform="translate(160,290)"/>
+        <use href="#switchIcon" transform="translate(310,225)"/>
+        <use href="#routerIcon" transform="translate(400,220)"/>
+        <use href="#switchIcon" transform="translate(490,225)"/>
+        <use href="#pcIcon" transform="translate(640,175)"/>
+        <use href="#pcIcon" transform="translate(640,290)"/>
+
+        <g font-size="12" fill="var(--text-main)" text-anchor="middle" font-variant-numeric="tabular-nums">
+          <text x="160" y="215">192.168.1.10</text>
+          <text x="160" y="330">192.168.1.20</text>
+          <text x="640" y="215">192.168.2.10</text>
+          <text x="640" y="330">192.168.2.20</text>
+        </g>
+        <g font-size="11" fill="var(--text-sub)" text-anchor="middle">
+          <text x="310" y="259">스위치</text>
+          <text x="490" y="259">스위치</text>
+          <text x="400" y="260">라우터</text>
+        </g>
+
+        <!-- 같은 네트워크: 바로 통신 -->
+        <path d="M160,175 Q55,232 160,290" fill="none" stroke="var(--net-bit)" stroke-width="2.5" marker-start="url(#arrowNet)" marker-end="url(#arrowNet)"/>
+        <rect x="12" y="213" width="94" height="36" rx="6" fill="var(--card-bg)"/>
+        <text x="59" y="227" font-size="10.5" font-weight="700" fill="var(--net-bit)" text-anchor="middle">같은 네트워크</text>
+        <text x="59" y="241" font-size="10.5" font-weight="700" fill="var(--net-bit)" text-anchor="middle">직접 통신 가능</text>
+
+        <!-- 다른 네트워크: 라우터 경유 -->
+        <path d="M160,175 Q280,80 400,198 Q520,80 640,175" fill="none" stroke="var(--host-bit)" stroke-width="2.5" stroke-dasharray="7 5" marker-start="url(#arrowHost)" marker-end="url(#arrowHost)"/>
+        <circle cx="400" cy="198" r="4" fill="var(--host-bit)"/>
+        <rect x="328" y="133" width="144" height="36" rx="6" fill="var(--card-bg)"/>
+        <text x="400" y="149" font-size="10.5" font-weight="700" fill="var(--host-bit)" text-anchor="middle">다른 네트워크는</text>
+        <text x="400" y="163" font-size="10.5" font-weight="700" fill="var(--host-bit)" text-anchor="middle">라우터를 거쳐야 함</text>
+      </svg>
+      <figcaption>
+        192.168.1.0/24 네트워크 안의 PC끼리는 스위치만으로 바로 통신할 수 있지만, 192.168.2.0/24처럼
+        다른 네트워크에 있는 PC와 통신하려면 반드시 라우터를 거쳐야 해요.
+      </figcaption>
+    </figure>
   </section>
 
   <!-- 3. CIDR -->
