@@ -20,6 +20,8 @@
     --text-sub: #555555;
     --net-bit: #3f51b5;
     --host-bit: #ff9800;
+    --ok: #2e7d32;
+    --bad: #c62828;
   }
 
   body.theme-default {
@@ -28,6 +30,7 @@
     --accent-soft: #fff8d6; --button-secondary: #e0e0e0;
     --text-main: #222222; --text-sub: #555555;
     --net-bit: #3f51b5; --host-bit: #ff9800;
+    --ok: #2e7d32; --bad: #c62828;
   }
   body.theme-pastel {
     --bg: #fff7fb; --header-bg: #ff9eb5; --header-text: #4a154b;
@@ -35,6 +38,7 @@
     --accent-soft: #ffe4f0; --button-secondary: #ffe4f4;
     --text-main: #4a154b; --text-sub: #92516c;
     --net-bit: #ff7ca3; --host-bit: #7c9eff;
+    --ok: #2e8b57; --bad: #d6336c;
   }
   body.theme-mint {
     --bg: #f1fff9; --header-bg: #00c2a8; --header-text: #00352e;
@@ -42,6 +46,7 @@
     --accent-soft: #e0fff6; --button-secondary: #d9fff3;
     --text-main: #00352e; --text-sub: #006f5b;
     --net-bit: #00b894; --host-bit: #ff8a65;
+    --ok: #00895a; --bad: #e64a19;
   }
   body.theme-dark {
     --bg: #101318; --header-bg: #181c25; --header-text: #f5f5f5;
@@ -49,6 +54,7 @@
     --accent-soft: #4b3b15; --button-secondary: #343b4a;
     --text-main: #f5f5f5; --text-sub: #c3c6cf;
     --net-bit: #64b5f6; --host-bit: #ffb74d;
+    --ok: #66bb6a; --bad: #ef5350;
   }
 
   body {
@@ -179,6 +185,37 @@
   .network-diagram svg, .analogy-diagram svg { width: 100%; height: auto; display: block; }
   .network-diagram figcaption, .analogy-diagram figcaption { font-size: 12.5px; color: var(--text-sub); margin-top: 8px; line-height: 1.5; text-align: center; }
 
+  .game-tray {
+    display: flex; flex-wrap: wrap; gap: 10px; min-height: 60px;
+    padding: 12px; margin: 14px 0; border: 2px dashed var(--panel-border); border-radius: 12px;
+  }
+  .ip-card {
+    touch-action: none; user-select: none; cursor: grab;
+    background: var(--card-bg); border: 2px solid var(--accent); border-radius: 8px;
+    padding: 9px 14px; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+  }
+  .ip-card:active { cursor: grabbing; }
+  .ip-card.dragging { opacity: 0.9; box-shadow: 0 10px 18px rgba(0,0,0,0.22); }
+  .ip-card.placed { cursor: default; }
+  .ip-card.correct { border-color: var(--ok); color: var(--ok); }
+  .ip-card.incorrect { border-color: var(--bad); color: var(--bad); }
+
+  .game-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .game-zones { grid-template-columns: 1fr; } }
+  .drop-zone {
+    border: 2px dashed var(--panel-border); border-radius: 12px; padding: 12px; min-height: 150px;
+    background: var(--bg); transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .drop-zone.hover { border-color: var(--accent); background: var(--accent-soft); }
+  .zone-title { font-weight: 700; font-size: 14px; }
+  .zone-sub { font-size: 11px; color: var(--text-sub); margin-bottom: 8px; }
+  .zone-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .game-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .game-score { font-weight: 700; font-size: 14px; }
+  .game-msg { margin-top: 8px; font-size: 13px; font-weight: 600; min-height: 18px; }
+
   .quiz-item {
     border: 1px solid var(--panel-border); border-radius: 10px; padding: 14px; margin-bottom: 12px;
   }
@@ -220,7 +257,8 @@
     <a href="#s1">1. IP 주소와 서브넷 마스크</a>
     <a href="#s3">2. CIDR 표기법</a>
     <a href="#s4">3. 서브넷 계산기</a>
-    <a href="#s5">4. 연습 문제</a>
+    <a href="#sgame">4. 네트워크 분류 게임</a>
+    <a href="#s5">5. 연습 문제</a>
   </nav>
 
   <!-- 1. 개념 -->
@@ -425,9 +463,36 @@
     <div class="result-grid" id="resultArea"></div>
   </section>
 
+  <!-- 게임: 네트워크 분류 -->
+  <section class="card" id="sgame">
+    <h2><span class="num">4</span> 네트워크 분류 게임 (드래그해서 맞혀보기)</h2>
+    <p>
+      기준 네트워크는 <code>192.168.1.0/24</code>예요. 아래 IP 주소 카드를 마우스나 손가락으로
+      끌어서 알맞은 상자에 넣어보세요!
+    </p>
+    <div class="game-tray" id="gameCards"></div>
+    <div class="game-zones">
+      <div class="drop-zone" id="zoneSame">
+        <div class="zone-title">✅ 같은 네트워크</div>
+        <div class="zone-sub">192.168.1.0/24</div>
+        <div class="zone-cards"></div>
+      </div>
+      <div class="drop-zone" id="zoneDiff">
+        <div class="zone-title">🚫 다른 네트워크</div>
+        <div class="zone-sub">192.168.1.0/24가 아닌 주소</div>
+        <div class="zone-cards"></div>
+      </div>
+    </div>
+    <div class="game-footer">
+      <div class="game-score" id="gameScore">점수: 0 / 6</div>
+      <button class="secondary" id="gameResetBtn">🔄 새 문제 받기</button>
+    </div>
+    <div class="game-msg" id="gameMsg"></div>
+  </section>
+
   <!-- 5. 연습문제 -->
   <section class="card" id="s5">
-    <h2><span class="num">4</span> 연습 문제</h2>
+    <h2><span class="num">5</span> 연습 문제</h2>
     <p>아래 문제를 풀어보고 "정답 보기"를 눌러 확인해 보세요. 위의 계산기로 직접 검산해봐도 좋아요!</p>
     <div id="quizArea"></div>
   </section>
@@ -567,6 +632,155 @@
   }
   document.getElementById('calcBtn').addEventListener('click', runCalc);
   runCalc();
+
+  // ---------- 게임: 네트워크 분류 (드래그 앤 드롭) ----------
+  (function initGame() {
+    const tray = document.getElementById('gameCards');
+    const zoneSame = document.getElementById('zoneSame');
+    const zoneDiff = document.getElementById('zoneDiff');
+    const zones = [zoneSame, zoneDiff];
+    const scoreEl = document.getElementById('gameScore');
+    const msgEl = document.getElementById('gameMsg');
+    const resetBtn = document.getElementById('gameResetBtn');
+
+    let total = 0, correctCount = 0, placedCount = 0;
+    let dragState = null;
+
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+    function buildRound() {
+      tray.innerHTML = '';
+      zoneSame.querySelector('.zone-cards').innerHTML = '';
+      zoneDiff.querySelector('.zone-cards').innerHTML = '';
+      msgEl.textContent = '';
+      correctCount = 0; placedCount = 0;
+
+      const items = [];
+      const usedLast = new Set();
+      while (items.filter(i => i.same).length < 4) {
+        const last = randInt(1, 254);
+        if (usedLast.has(last)) continue;
+        usedLast.add(last);
+        items.push({ ip: `192.168.1.${last}`, same: true });
+      }
+      const diffThirds = [2, 3, 5, 7, 9];
+      const usedThirds = new Set();
+      while (items.filter(i => !i.same).length < 2) {
+        const third = diffThirds[randInt(0, diffThirds.length - 1)];
+        if (usedThirds.has(third)) continue;
+        usedThirds.add(third);
+        items.push({ ip: `192.168.${third}.${randInt(1, 254)}`, same: false });
+      }
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = randInt(0, i);
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+
+      total = items.length;
+      items.forEach(item => tray.appendChild(makeCard(item)));
+      updateScore();
+    }
+
+    function updateScore() {
+      scoreEl.textContent = `점수: ${correctCount} / ${total}`;
+    }
+
+    function makeCard(item) {
+      const card = document.createElement('div');
+      card.className = 'ip-card';
+      card.textContent = item.ip;
+      card.dataset.same = item.same ? '1' : '0';
+      card.addEventListener('pointerdown', onPointerDown);
+      return card;
+    }
+
+    function zoneAt(clientX, clientY) {
+      for (const z of zones) {
+        const r = z.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) return z;
+      }
+      return null;
+    }
+
+    function onPointerDown(e) {
+      const card = e.currentTarget;
+      if (card.classList.contains('placed')) return;
+      card.setPointerCapture(e.pointerId);
+      const rect = card.getBoundingClientRect();
+      dragState = {
+        card,
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top,
+        startParent: card.parentElement,
+        startNext: card.nextSibling,
+      };
+      card.classList.add('dragging');
+      card.style.position = 'fixed';
+      card.style.width = rect.width + 'px';
+      card.style.left = rect.left + 'px';
+      card.style.top = rect.top + 'px';
+      card.style.zIndex = '999';
+      card.addEventListener('pointermove', onPointerMove);
+      card.addEventListener('pointerup', onPointerUp);
+      card.addEventListener('pointercancel', onPointerCancel);
+    }
+
+    function onPointerMove(e) {
+      if (!dragState) return;
+      const { card, offsetX, offsetY } = dragState;
+      card.style.left = (e.clientX - offsetX) + 'px';
+      card.style.top = (e.clientY - offsetY) + 'px';
+      const over = zoneAt(e.clientX, e.clientY);
+      zones.forEach(z => z.classList.toggle('hover', z === over));
+    }
+
+    function finishDrag(card, dropZone) {
+      card.classList.remove('dragging');
+      card.style.position = ''; card.style.width = ''; card.style.left = ''; card.style.top = ''; card.style.zIndex = '';
+      card.removeEventListener('pointermove', onPointerMove);
+      card.removeEventListener('pointerup', onPointerUp);
+      card.removeEventListener('pointercancel', onPointerCancel);
+      zones.forEach(z => z.classList.remove('hover'));
+
+      if (dropZone) {
+        const ipText = card.textContent;
+        const isSame = card.dataset.same === '1';
+        const rightAnswer = isSame === (dropZone === zoneSame);
+        card.classList.add(rightAnswer ? 'correct' : 'incorrect', 'placed');
+        card.textContent = ipText + (rightAnswer ? ' ✅' : ' ❌');
+        dropZone.querySelector('.zone-cards').appendChild(card);
+        if (rightAnswer) correctCount++;
+        placedCount++;
+        updateScore();
+        msgEl.style.color = rightAnswer ? 'var(--ok)' : 'var(--bad)';
+        msgEl.textContent = rightAnswer
+          ? '정답이에요! 🎉'
+          : `아쉬워요 😅 "${ipText}"는 사실 ${isSame ? '같은' : '다른'} 네트워크예요.`;
+        if (placedCount === total) {
+          msgEl.textContent += `  — 다 풀었어요! 최종 점수 ${correctCount} / ${total}`;
+        }
+      } else {
+        const { startParent, startNext } = dragState;
+        if (startNext) startParent.insertBefore(card, startNext);
+        else startParent.appendChild(card);
+      }
+      dragState = null;
+    }
+
+    function onPointerUp(e) {
+      if (!dragState) return;
+      const rect = dragState.card.getBoundingClientRect();
+      finishDrag(dragState.card, zoneAt(rect.left + rect.width / 2, rect.top + rect.height / 2));
+    }
+
+    function onPointerCancel() {
+      if (!dragState) return;
+      finishDrag(dragState.card, null);
+    }
+
+    resetBtn.addEventListener('click', buildRound);
+    buildRound();
+  })();
 
   // ---------- 섹션 5: 퀴즈 ----------
   const quizzes = [
