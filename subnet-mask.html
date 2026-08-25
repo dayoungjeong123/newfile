@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>서브넷 마스크 이해하기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --bg: #f5f5f5;
+    --header-bg: #3f51b5;
+    --header-text: #ffffff;
+    --card-bg: #ffffff;
+    --panel-border: #dddddd;
+    --accent: #3f51b5;
+    --accent-soft: #fff8d6;
+    --button-secondary: #e0e0e0;
+    --text-main: #222222;
+    --text-sub: #555555;
+    --net-bit: #3f51b5;
+    --host-bit: #ff9800;
+  }
+
+  body.theme-default {
+    --bg: #f5f5f5; --header-bg: #3f51b5; --header-text: #ffffff;
+    --card-bg: #ffffff; --panel-border: #dddddd; --accent: #3f51b5;
+    --accent-soft: #fff8d6; --button-secondary: #e0e0e0;
+    --text-main: #222222; --text-sub: #555555;
+    --net-bit: #3f51b5; --host-bit: #ff9800;
+  }
+  body.theme-pastel {
+    --bg: #fff7fb; --header-bg: #ff9eb5; --header-text: #4a154b;
+    --card-bg: #ffffff; --panel-border: #ffd4e5; --accent: #ff7ca3;
+    --accent-soft: #ffe4f0; --button-secondary: #ffe4f4;
+    --text-main: #4a154b; --text-sub: #92516c;
+    --net-bit: #ff7ca3; --host-bit: #7c9eff;
+  }
+  body.theme-mint {
+    --bg: #f1fff9; --header-bg: #00c2a8; --header-text: #00352e;
+    --card-bg: #ffffff; --panel-border: #b9f4e7; --accent: #00b894;
+    --accent-soft: #e0fff6; --button-secondary: #d9fff3;
+    --text-main: #00352e; --text-sub: #006f5b;
+    --net-bit: #00b894; --host-bit: #ff8a65;
+  }
+  body.theme-dark {
+    --bg: #101318; --header-bg: #181c25; --header-text: #f5f5f5;
+    --card-bg: #1f2430; --panel-border: #343b4a; --accent: #ffca28;
+    --accent-soft: #4b3b15; --button-secondary: #343b4a;
+    --text-main: #f5f5f5; --text-sub: #c3c6cf;
+    --net-bit: #64b5f6; --host-bit: #ffb74d;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-main);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  header {
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header .header-left { flex: 1 1 auto; min-width: 220px; }
+  header h1 { margin: 0; font-size: 21px; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: 0.9; }
+
+  .theme-switcher {
+    display: flex; align-items: center; gap: 6px; font-size: 13px;
+    background: rgba(255,255,255,0.14); padding: 6px 10px; border-radius: 999px;
+  }
+  .theme-switcher select { border: none; border-radius: 6px; padding: 3px 6px; font-size: 13px; }
+
+  main { max-width: 980px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
+  }
+  nav.toc a {
+    background: var(--card-bg); border: 1px solid var(--panel-border);
+    color: var(--accent); text-decoration: none; font-size: 13px;
+    padding: 6px 12px; border-radius: 999px;
+  }
+  nav.toc a:hover { border-color: var(--accent); }
+
+  section.card {
+    background: var(--card-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  section.card h2 {
+    margin-top: 0; font-size: 19px; display: flex; align-items: center; gap: 8px;
+  }
+  section.card h2 .num {
+    background: var(--accent); color: var(--header-text);
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; flex: none;
+  }
+  section.card p { line-height: 1.65; color: var(--text-sub); }
+  section.card h3 { font-size: 15px; margin: 18px 0 8px; }
+
+  code { background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; font-size: 0.95em; }
+
+  /* 옥텟 시각화 */
+  .octet-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+  .octet-box {
+    flex: 1 1 90px; min-width: 90px; text-align: center;
+    border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px 6px;
+    background: var(--bg);
+  }
+  .octet-box .label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
+  .octet-box .val { font-size: 18px; font-weight: 700; }
+  .octet-box.net { border-color: var(--net-bit); }
+  .octet-box.host { border-color: var(--host-bit); }
+
+  /* 비트 시각화 */
+  .bits-line { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px 0; font-family: "SFMono-Regular", Consolas, monospace; }
+  .bits-line .octet-bits { display: flex; gap: 1px; padding: 2px; border-right: 2px dashed var(--panel-border); }
+  .bits-line .octet-bits:last-child { border-right: none; }
+  .bit {
+    width: 22px; height: 26px; display: flex; align-items: center; justify-content: center;
+    border-radius: 3px; font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .bit.net { background: var(--net-bit); }
+  .bit.host { background: var(--host-bit); }
+  .bit.zero { opacity: 0.55; }
+  .bits-caption { font-size: 12px; color: var(--text-sub); margin-bottom: 2px; }
+
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-sub); margin-top: 8px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .legend i.net { background: var(--net-bit); }
+  .legend i.host { background: var(--host-bit); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 10px 0; }
+  table caption { text-align: left; font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
+  th, td { border: 1px solid var(--panel-border); padding: 6px 8px; text-align: center; }
+  th { background: var(--accent-soft); }
+  tr.highlight td { background: var(--accent-soft); font-weight: 700; }
+
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+  @media (max-width: 640px) { .calc-grid { grid-template-columns: 1fr; } }
+  .field label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--panel-border);
+    border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text-main);
+  }
+
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 10px; margin-top: 14px; }
+  .result-box {
+    background: var(--accent-soft); border-radius: 8px; padding: 10px 12px;
+  }
+  .result-box .label { font-size: 11px; color: var(--text-sub); }
+  .result-box .val { font-size: 15px; font-weight: 700; margin-top: 2px; word-break: break-all; }
+
+  .teacher-bubble {
+    position: relative; background: var(--accent-soft); border: 1px solid var(--panel-border);
+    border-radius: 10px; padding: 12px 14px; margin: 14px 0; font-size: 13.5px; color: var(--text-main);
+  }
+  .teacher-bubble h4 { margin: 0 0 6px; font-size: 13px; color: var(--accent); }
+
+  .quiz-item {
+    border: 1px solid var(--panel-border); border-radius: 10px; padding: 14px; margin-bottom: 12px;
+  }
+  .quiz-item .q { font-weight: 600; margin-bottom: 8px; }
+  .quiz-item .answer {
+    display: none; margin-top: 10px; padding: 10px; background: var(--accent-soft); border-radius: 8px; font-size: 13.5px;
+  }
+  .quiz-item .answer.show { display: block; }
+  button {
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer;
+  }
+  button.secondary { background: var(--button-secondary); color: var(--text-main); }
+  button:hover { filter: brightness(1.05); }
+
+  .error-msg { color: #e53935; font-size: 12.5px; margin-top: 6px; min-height: 16px; }
+</style>
+</head>
+<body class="theme-default">
+
+<header>
+  <div class="header-left">
+    <h1>🌐 서브넷 마스크 이해하기</h1>
+    <p>IP 주소, 네트워크/호스트, CIDR, 서브넷 계산까지 한 번에 배우는 수업 자료</p>
+  </div>
+  <div class="theme-switcher">
+    🎨 테마
+    <select id="themeSelect">
+      <option value="theme-default">기본</option>
+      <option value="theme-pastel">파스텔</option>
+      <option value="theme-mint">민트</option>
+      <option value="theme-dark">다크</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <nav class="toc">
+    <a href="#s1">1. IP 주소와 서브넷 마스크</a>
+    <a href="#s2">2. 2진수와 AND 연산</a>
+    <a href="#s3">3. CIDR 표기법</a>
+    <a href="#s4">4. 서브넷 계산기</a>
+    <a href="#s5">5. 연습 문제</a>
+  </nav>
+
+  <!-- 1. 개념 -->
+  <section class="card" id="s1">
+    <h2><span class="num">1</span> IP 주소와 서브넷 마스크란?</h2>
+    <p>
+      IP 주소는 <code>192.168.1.10</code>처럼 점(.)으로 구분된 4개의 숫자(옥텟, octet)로 이루어져요.
+      각 옥텟은 0~255 사이의 값을 가지는데, 이는 8개의 비트(2진수 자리)로 표현되기 때문이에요.
+      즉 IP 주소 전체는 <strong>32비트</strong>로 이루어져 있습니다.
+    </p>
+    <p>
+      하나의 IP 주소는 사실 두 부분으로 나뉘어요: <strong>네트워크 부분</strong>(어느 네트워크에 속하는지)과
+      <strong>호스트 부분</strong>(그 네트워크 안에서 어떤 기기인지). 문제는 IP 주소만 봐서는 어디까지가
+      네트워크이고 어디부터가 호스트인지 알 수 없다는 거예요. 이걸 알려주는 것이 바로
+      <strong>서브넷 마스크(Subnet Mask)</strong>입니다.
+    </p>
+    <div class="octet-row">
+      <div class="octet-box net"><div class="label">192</div><div class="val">네트워크</div></div>
+      <div class="octet-box net"><div class="label">168</div><div class="val">네트워크</div></div>
+      <div class="octet-box net"><div class="label">1</div><div class="val">네트워크</div></div>
+      <div class="octet-box host"><div class="label">10</div><div class="val">호스트</div></div>
+    </div>
+    <p>
+      예를 들어 서브넷 마스크가 <code>255.255.255.0</code>이라면, 앞의 3개 옥텟(24비트)은 네트워크를,
+      마지막 1개 옥텟(8비트)은 그 네트워크 안의 호스트(기기)를 구분하는 데 사용돼요.
+    </p>
+    <div class="teacher-bubble">
+      <h4>🧑‍🏫 선생님 한마디</h4>
+      서브넷 마스크는 "이 IP 주소에서 어디까지가 동네(네트워크) 이름이고, 어디부터가 집(호스트) 번호인지"
+      알려주는 규칙이라고 생각하면 쉬워요. 같은 네트워크에 속한 기기끼리는 스위치나 공유기를 통해 바로 통신할 수 있지만,
+      다른 네트워크에 있는 기기와 통신하려면 라우터를 거쳐야 해요.
+    </div>
+  </section>
+
+  <!-- 2. 2진수 & AND -->
+  <section class="card" id="s2">
+    <h2><span class="num">2</span> 2진수로 보는 IP 주소와 AND 연산</h2>
+    <p>
+      컴퓨터는 IP 주소와 서브넷 마스크를 2진수로 다뤄요. 서브넷 마스크에서 <strong>1</strong>인 비트는
+      네트워크 부분, <strong>0</strong>인 비트는 호스트 부분을 의미합니다.
+    </p>
+    <h3>예시: 192.168.1.10 / 255.255.255.0</h3>
+
+    <div class="bits-caption">IP 주소</div>
+    <div class="bits-line">
+      <div class="octet-bits" id="ex-ip-0"></div>
+      <div class="octet-bits" id="ex-ip-1"></div>
+      <div class="octet-bits" id="ex-ip-2"></div>
+      <div class="octet-bits" id="ex-ip-3"></div>
+    </div>
+    <div class="bits-caption">서브넷 마스크</div>
+    <div class="bits-line">
+      <div class="octet-bits" id="ex-mask-0"></div>
+      <div class="octet-bits" id="ex-mask-1"></div>
+      <div class="octet-bits" id="ex-mask-2"></div>
+      <div class="octet-bits" id="ex-mask-3"></div>
+    </div>
+    <div class="bits-caption">AND 연산 결과 → 네트워크 주소</div>
+    <div class="bits-line">
+      <div class="octet-bits" id="ex-net-0"></div>
+      <div class="octet-bits" id="ex-net-1"></div>
+      <div class="octet-bits" id="ex-net-2"></div>
+      <div class="octet-bits" id="ex-net-3"></div>
+    </div>
+    <div class="legend">
+      <span><i class="net"></i> 네트워크 비트(마스크=1)</span>
+      <span><i class="host"></i> 호스트 비트(마스크=0)</span>
+    </div>
+
+    <p>
+      <strong>AND 연산</strong>은 두 비트가 모두 1일 때만 결과가 1이 되는 연산이에요.
+      IP 주소와 서브넷 마스크를 비트 단위로 AND 연산하면, 마스크가 0인 자리(호스트 부분)는
+      전부 0으로 바뀌고 마스크가 1인 자리(네트워크 부분)는 IP 주소 값이 그대로 남아요.
+      그 결과가 바로 <strong>네트워크 주소</strong>입니다.
+    </p>
+    <div class="teacher-bubble">
+      <h4>🧑‍🏫 선생님 한마디</h4>
+      AND 연산표: 1 AND 1 = 1, 1 AND 0 = 0, 0 AND 1 = 0, 0 AND 0 = 0.
+      "둘 다 1이어야만 1"이라고 외워두면 편해요. 그래서 마스크의 0 부분을 곱하면(AND) 항상 0이 되는 거죠.
+    </div>
+  </section>
+
+  <!-- 3. CIDR -->
+  <section class="card" id="s3">
+    <h2><span class="num">3</span> CIDR 표기법 (/24 같은 표기)</h2>
+    <p>
+      서브넷 마스크를 <code>255.255.255.0</code>처럼 매번 쓰기보다, 1의 개수만 세어서
+      <code>/24</code>처럼 표현하는 방법을 <strong>CIDR(사이더) 표기법</strong>이라고 해요.
+      <code>192.168.1.10/24</code>는 "192.168.1.10 주소이고, 앞의 24비트가 네트워크 부분"이라는 뜻입니다.
+    </p>
+    <table>
+      <caption>자주 쓰는 CIDR과 서브넷 마스크 대응표</caption>
+      <thead>
+        <tr><th>CIDR</th><th>서브넷 마스크</th><th>네트워크 비트</th><th>호스트 비트</th><th>사용 가능한 호스트 수</th></tr>
+      </thead>
+      <tbody id="cidrTable"></tbody>
+    </table>
+    <div class="teacher-bubble">
+      <h4>🧑‍🏫 선생님 한마디</h4>
+      호스트 수를 구하는 공식은 <code>2^(호스트 비트 수) - 2</code>예요. 2를 빼는 이유는
+      옥텟 전체가 0인 주소(네트워크 주소)와 전체가 1인 주소(브로드캐스트 주소)는
+      실제 기기에 할당할 수 없기 때문이에요. (단, /31과 /32는 특수한 용도로 예외적으로 다뤄요.)
+    </div>
+  </section>
+
+  <!-- 4. 계산기 -->
+  <section class="card" id="s4">
+    <h2><span class="num">4</span> 서브넷 계산기 (직접 해보기)</h2>
+    <p>IP 주소와 CIDR을 입력하면 서브넷 마스크, 네트워크 주소, 브로드캐스트 주소, 사용 가능한 호스트 범위를 바로 계산해줘요.</p>
+
+    <div class="calc-grid">
+      <div class="field">
+        <label>IP 주소</label>
+        <input id="ipInput" type="text" value="192.168.1.10" placeholder="예: 192.168.1.10" />
+      </div>
+      <div class="field">
+        <label>CIDR (접두사 길이)</label>
+        <select id="cidrInput"></select>
+      </div>
+    </div>
+    <button id="calcBtn">계산하기</button>
+    <div class="error-msg" id="errMsg"></div>
+
+    <div id="calcBitsArea" style="margin-top:16px;"></div>
+
+    <div class="result-grid" id="resultArea"></div>
+  </section>
+
+  <!-- 5. 연습문제 -->
+  <section class="card" id="s5">
+    <h2><span class="num">5</span> 연습 문제</h2>
+    <p>아래 문제를 풀어보고 "정답 보기"를 눌러 확인해 보세요. 위의 계산기로 직접 검산해봐도 좋아요!</p>
+    <div id="quizArea"></div>
+  </section>
+</main>
+
+<script>
+  // ---------- 공통 유틸 ----------
+  function ipToOctets(ip) {
+    const parts = ip.trim().split('.');
+    if (parts.length !== 4) return null;
+    const nums = [];
+    for (const p of parts) {
+      if (!/^\d{1,3}$/.test(p)) return null;
+      const n = parseInt(p, 10);
+      if (n < 0 || n > 255) return null;
+      nums.push(n);
+    }
+    return nums;
+  }
+  function toBin8(n) { return n.toString(2).padStart(8, '0'); }
+  function cidrToMaskOctets(cidr) {
+    const bits = '1'.repeat(cidr) + '0'.repeat(32 - cidr);
+    const octets = [];
+    for (let i = 0; i < 4; i++) octets.push(parseInt(bits.slice(i*8, i*8+8), 2));
+    return octets;
+  }
+  function andOctets(a, b) { return a.map((v,i) => v & b[i]); }
+  function orOctets(a, b) { return a.map((v,i) => v | b[i]); }
+  function notOctets(a) { return a.map(v => 255 - v); }
+
+  function renderBitsLine(containerIds, octets, maskOctets) {
+    // maskOctets 를 기준으로 net/host 색칠 (없으면 자기 자신을 마스크로 사용)
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById(containerIds[i]);
+      if (!el) continue;
+      el.innerHTML = '';
+      const bin = toBin8(octets[i]);
+      const maskBin = maskOctets ? toBin8(maskOctets[i]) : bin;
+      for (let b = 0; b < 8; b++) {
+        const span = document.createElement('span');
+        const isNet = maskBin[b] === '1';
+        span.className = 'bit ' + (isNet ? 'net' : 'host') + (bin[b] === '0' ? ' zero' : '');
+        span.textContent = bin[b];
+        el.appendChild(span);
+      }
+    }
+  }
+
+  // ---------- 섹션 2: 고정 예시 ----------
+  (function initExample() {
+    const ip = [192,168,1,10];
+    const mask = [255,255,255,0];
+    const net = andOctets(ip, mask);
+    renderBitsLine(['ex-ip-0','ex-ip-1','ex-ip-2','ex-ip-3'], ip, mask);
+    renderBitsLine(['ex-mask-0','ex-mask-1','ex-mask-2','ex-mask-3'], mask, mask);
+    renderBitsLine(['ex-net-0','ex-net-1','ex-net-2','ex-net-3'], net, mask);
+  })();
+
+  // ---------- 섹션 3: CIDR 표 ----------
+  (function initCidrTable() {
+    const tbody = document.getElementById('cidrTable');
+    const commonList = [8,16,24,25,26,27,28,29,30];
+    commonList.forEach(cidr => {
+      const maskOctets = cidrToMaskOctets(cidr);
+      const hostBits = 32 - cidr;
+      const usable = hostBits >= 2 ? Math.pow(2, hostBits) - 2 : (hostBits === 1 ? 2 : 0);
+      const tr = document.createElement('tr');
+      if (cidr === 24) tr.className = 'highlight';
+      tr.innerHTML = `<td>/${cidr}</td><td>${maskOctets.join('.')}</td><td>${cidr}</td><td>${hostBits}</td><td>${usable.toLocaleString()}</td>`;
+      tbody.appendChild(tr);
+    });
+  })();
+
+  // ---------- 섹션 4: 계산기 ----------
+  const cidrInput = document.getElementById('cidrInput');
+  for (let i = 0; i <= 32; i++) {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = '/' + i;
+    if (i === 24) opt.selected = true;
+    cidrInput.appendChild(opt);
+  }
+
+  function runCalc() {
+    const errEl = document.getElementById('errMsg');
+    const resultArea = document.getElementById('resultArea');
+    const bitsArea = document.getElementById('calcBitsArea');
+    errEl.textContent = '';
+    resultArea.innerHTML = '';
+    bitsArea.innerHTML = '';
+
+    const ipOctets = ipToOctets(document.getElementById('ipInput').value);
+    const cidr = parseInt(cidrInput.value, 10);
+    if (!ipOctets) {
+      errEl.textContent = '⚠️ IP 주소 형식이 올바르지 않아요. 예: 192.168.1.10';
+      return;
+    }
+
+    const maskOctets = cidrToMaskOctets(cidr);
+    const networkOctets = andOctets(ipOctets, maskOctets);
+    const broadcastOctets = orOctets(networkOctets, notOctets(maskOctets));
+    const hostBits = 32 - cidr;
+
+    let firstHost, lastHost, usableCount;
+    if (hostBits === 0) {
+      // /32
+      firstHost = networkOctets; lastHost = networkOctets; usableCount = 1;
+    } else if (hostBits === 1) {
+      // /31 (point-to-point)
+      firstHost = networkOctets; lastHost = broadcastOctets; usableCount = 2;
+    } else {
+      const netVal = networkOctets.reduce((a,v)=>a*256+v,0);
+      const bcVal = broadcastOctets.reduce((a,v)=>a*256+v,0);
+      const toOctets = (v) => [ (v>>>24)&255, (v>>>16)&255, (v>>>8)&255, v&255 ];
+      firstHost = toOctets(netVal + 1);
+      lastHost = toOctets(bcVal - 1);
+      usableCount = Math.pow(2, hostBits) - 2;
+    }
+
+    // 비트 시각화
+    bitsArea.innerHTML = `
+      <div class="bits-caption">IP 주소</div>
+      <div class="bits-line" id="c-ip"></div>
+      <div class="bits-caption">서브넷 마스크 (/${cidr})</div>
+      <div class="bits-line" id="c-mask"></div>
+      <div class="bits-caption">네트워크 주소 (AND 연산 결과)</div>
+      <div class="bits-line" id="c-net"></div>
+      <div class="legend">
+        <span><i class="net"></i> 네트워크 비트</span>
+        <span><i class="host"></i> 호스트 비트</span>
+      </div>
+    `;
+    ['c-ip','c-mask','c-net'].forEach(prefix => {
+      const wrap = document.getElementById(prefix);
+      for (let i=0;i<4;i++) { const d=document.createElement('div'); d.id=prefix+'-'+i; d.className='octet-bits'; wrap.appendChild(d); }
+    });
+    renderBitsLine(['c-ip-0','c-ip-1','c-ip-2','c-ip-3'], ipOctets, maskOctets);
+    renderBitsLine(['c-mask-0','c-mask-1','c-mask-2','c-mask-3'], maskOctets, maskOctets);
+    renderBitsLine(['c-net-0','c-net-1','c-net-2','c-net-3'], networkOctets, maskOctets);
+
+    const results = [
+      ['서브넷 마스크', maskOctets.join('.')],
+      ['네트워크 주소', networkOctets.join('.') + '/' + cidr],
+      ['브로드캐스트 주소', broadcastOctets.join('.')],
+      ['사용 가능한 호스트 범위', hostBits === 0 ? '(없음, 호스트 1개 전용)' : firstHost.join('.') + ' ~ ' + lastHost.join('.')],
+      ['사용 가능한 호스트 수', usableCount.toLocaleString() + '개'],
+    ];
+    results.forEach(([label, val]) => {
+      const box = document.createElement('div');
+      box.className = 'result-box';
+      box.innerHTML = `<div class="label">${label}</div><div class="val">${val}</div>`;
+      resultArea.appendChild(box);
+    });
+  }
+  document.getElementById('calcBtn').addEventListener('click', runCalc);
+  runCalc();
+
+  // ---------- 섹션 5: 퀴즈 ----------
+  const quizzes = [
+    {
+      q: 'Q1. IP 주소 192.168.10.130, 서브넷 마스크 255.255.255.0(/24)일 때 네트워크 주소는?',
+      a: '네트워크 주소는 <code>192.168.10.0</code>이에요. 마스크가 255.255.255.0(/24)이므로 앞의 3옥텟은 그대로 두고, 마지막 옥텟만 0으로 바뀝니다.'
+    },
+    {
+      q: 'Q2. 10.0.0.5/8 네트워크에서 사용 가능한 호스트는 몇 개일까요?',
+      a: '/8은 호스트 비트가 32-8=24비트예요. 2^24 - 2 = 16,777,214개의 호스트를 사용할 수 있어요.'
+    },
+    {
+      q: 'Q3. 172.16.5.200 /26 의 서브넷 마스크와 브로드캐스트 주소는?',
+      a: '/26은 호스트 비트가 6개(2^6=64개의 주소 블록)예요. 서브넷 마스크는 <code>255.255.255.192</code>. 200은 192~255 구간에 속하므로 네트워크 주소는 <code>172.16.5.192</code>, 브로드캐스트 주소는 <code>172.16.5.255</code>입니다.'
+    },
+    {
+      q: 'Q4. 서브넷 마스크 255.255.255.240은 CIDR로 몇 비트(/?)이고, 한 네트워크에 몇 대의 호스트를 연결할 수 있나요?',
+      a: '240 = 11110000(2)이므로 네트워크 비트는 앞 4개 옥텟 중 마지막 옥텟의 4비트가 추가되어 총 28비트, 즉 <code>/28</code>입니다. 호스트 비트는 4개이므로 2^4 - 2 = 14대를 연결할 수 있어요.'
+    },
+  ];
+  const quizArea = document.getElementById('quizArea');
+  quizzes.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-item';
+    div.innerHTML = `
+      <div class="q">${item.q}</div>
+      <button class="secondary reveal-btn" data-idx="${idx}">정답 보기</button>
+      <div class="answer" id="ans-${idx}">${item.a}</div>
+    `;
+    quizArea.appendChild(div);
+  });
+  quizArea.addEventListener('click', (e) => {
+    if (e.target.classList.contains('reveal-btn')) {
+      const idx = e.target.getAttribute('data-idx');
+      const ansEl = document.getElementById('ans-' + idx);
+      ansEl.classList.toggle('show');
+      e.target.textContent = ansEl.classList.contains('show') ? '정답 숨기기' : '정답 보기';
+    }
+  });
+
+  // ---------- 테마 전환 ----------
+  document.getElementById('themeSelect').addEventListener('change', (e) => {
+    document.body.className = e.target.value;
+  });
+</script>
+
+</body>
+</html>
