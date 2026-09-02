@@ -678,7 +678,7 @@
 // ---------- 섹션 3: CIDR 표 ----------
   (function initCidrTable() {
     const tbody = document.getElementById('cidrTable');
-    const commonList = [8,16,24,25,26,27,28,29,30];
+    const commonList = [8,16,23,24,25,26,27,28,29,30];
     commonList.forEach(cidr => {
       const maskOctets = cidrToMaskOctets(cidr);
       const hostBits = 32 - cidr;
@@ -694,7 +694,7 @@
 
   // ---------- 섹션 4: 계산기 (고등학교 수업에서 다루는 CIDR만 제공) ----------
   const cidrInput = document.getElementById('cidrInput');
-  const cidrChoices = [8, 16, 24, 25, 26, 27, 28, 29, 30];
+  const cidrChoices = [8, 16, 23, 24, 25, 26, 27, 28, 29, 30];
   cidrChoices.forEach(i => {
     const opt = document.createElement('option');
     opt.value = i; opt.textContent = '/' + i;
